@@ -1,3 +1,29 @@
+/* =========================================================================
+   KONFIGURASI SUPABASE — TEMPEL URL & ANON KEY KAMU DI SINI
+   =========================================================================
+   1. Buka project Supabase kamu > Project Settings > API.
+   2. Salin "Project URL" ke SUPABASE_URL di bawah.
+   3. Salin "anon public" API key ke SUPABASE_ANON_KEY di bawah.
+   4. Pastikan tabel di Supabase kamu punya struktur kolom yang sama seperti
+      di bawah (lihat catatan skema di akhir chat). Kalau nama kolom/tabel
+      kamu beda, kasih tahu saya supaya kode ini saya sesuaikan.
+========================================================================= */
+const SUPABASE_URL = 'https://lctxvvdclarfzpiuojm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjdHh2dmRjbGFyZnpweml1b2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NzY4MjUsImV4cCI6MjEwMjM1MjgyNX0._ELknJwuB_NduSnVoYkKKzThRgRAGMqMU3l3ZucsCAY';
+
+const supabaseClient = (SUPABASE_URL.startsWith('http') && window.supabase)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+// Nama tabel di Supabase — sesuaikan di sini kalau nama tabelmu berbeda
+const TABLES = {
+    members: 'members',
+    kegiatan: 'kegiatan',
+    absensi: 'absensi_sesi',
+    sku: 'sku',
+    skk: 'skk'
+};
+
 /* =========================================
    ICONS DICTIONARY (SVG INLINE)
 ========================================= */
@@ -133,58 +159,115 @@ let activeMemberTab = 'info';
 let activeDetailMemberId = null;
 let selectedMemberIds = new Set();
 
-document.addEventListener('DOMContentLoaded', () => {
-    initDatabase();
-    checkSession();
+document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
+    await initDatabase();
+    checkSession();
 });
 
-function initDatabase() {
-    const stored = localStorage.getItem('scoutos_members');
-    if (!stored) {
-        localStorage.setItem('scoutos_members', JSON.stringify(initialMembersData));
-        membersList = initialMembersData;
-    } else {
-        membersList = JSON.parse(stored);
+/* =========================================
+   DATA LAYER — SUPABASE
+   Semua fungsi di bawah menggantikan localStorage lama. Data disimpan
+   secara online di Supabase dan diambil ulang (fetch) setiap kali ada
+   perubahan, supaya tampilan selalu sinkron dengan server.
+========================================= */
+function ensureSupabaseReady() {
+    if (!supabaseClient) {
+        alert('Koneksi Supabase belum disiapkan. Tempel SUPABASE_URL & SUPABASE_ANON_KEY di bagian atas script.js terlebih dahulu.');
+        return false;
     }
-
-    activitiesList = loadFromStorage('scoutos_kegiatan', []);
-    absensiList = loadFromStorage('scoutos_absensi', []);
-    skuList = loadFromStorage('scoutos_sku', []);
-    skkList = loadFromStorage('scoutos_skk', []);
+    return true;
 }
 
-function loadFromStorage(key, fallback) {
-    const stored = localStorage.getItem(key);
-    if (!stored) {
-        localStorage.setItem(key, JSON.stringify(fallback));
-        return fallback;
+function showDataError(context, error) {
+    console.error(`Gagal ${context}:`, error);
+    alert(`Gagal ${context}. Periksa koneksi internet atau konfigurasi Supabase kamu.\n\nDetail: ${error?.message || error}`);
+}
+
+async function initDatabase() {
+    const loadingView = document.getElementById('loading-view');
+
+    if (!ensureSupabaseReady()) {
+        // Tanpa konfigurasi Supabase, tetap tampilkan halaman login dengan
+        // data kosong supaya developer bisa lihat UI-nya sambil pasang kunci.
+        membersList = [];
+        activitiesList = [];
+        absensiList = [];
+        skuList = [];
+        skkList = [];
+        if (loadingView) loadingView.classList.add('hidden');
+        return;
     }
+
     try {
-        return JSON.parse(stored);
-    } catch (e) {
-        return fallback;
+        const [membersRes, kegiatanRes, absensiRes, skuRes, skkRes] = await Promise.all([
+            supabaseClient.from(TABLES.members).select('*').order('name', { ascending: true }),
+            supabaseClient.from(TABLES.kegiatan).select('*').order('date', { ascending: false }),
+            supabaseClient.from(TABLES.absensi).select('*').order('date', { ascending: false }),
+            supabaseClient.from(TABLES.sku).select('*'),
+            supabaseClient.from(TABLES.skk).select('*')
+        ]);
+
+        [membersRes, kegiatanRes, absensiRes, skuRes, skkRes].forEach(res => {
+            if (res.error) throw res.error;
+        });
+
+        membersList = membersRes.data || [];
+        activitiesList = kegiatanRes.data || [];
+        absensiList = absensiRes.data || [];
+        skuList = skuRes.data || [];
+        skkList = skkRes.data || [];
+
+        // Seed data awal hanya jika tabel anggota masih benar-benar kosong
+        // (misalnya baru pertama kali menyambungkan Supabase).
+        if (membersList.length === 0) {
+            const { data: seeded, error: seedError } = await supabaseClient
+                .from(TABLES.members)
+                .insert(initialMembersData)
+                .select();
+            if (seedError) throw seedError;
+            membersList = seeded || initialMembersData;
+        }
+    } catch (err) {
+        showDataError('memuat data dari Supabase', err);
+        membersList = membersList.length ? membersList : [];
+        activitiesList = activitiesList.length ? activitiesList : [];
+        absensiList = absensiList.length ? absensiList : [];
+        skuList = skuList.length ? skuList : [];
+        skkList = skkList.length ? skkList : [];
+    } finally {
+        if (loadingView) loadingView.classList.add('hidden');
     }
 }
 
-function saveMembersToStorage() {
-    localStorage.setItem('scoutos_members', JSON.stringify(membersList));
+async function refreshMembers() {
+    const { data, error } = await supabaseClient.from(TABLES.members).select('*').order('name', { ascending: true });
+    if (error) { showDataError('memuat ulang data anggota', error); return; }
+    membersList = data || [];
 }
 
-function saveActivitiesToStorage() {
-    localStorage.setItem('scoutos_kegiatan', JSON.stringify(activitiesList));
+async function refreshActivities() {
+    const { data, error } = await supabaseClient.from(TABLES.kegiatan).select('*').order('date', { ascending: false });
+    if (error) { showDataError('memuat ulang data kegiatan', error); return; }
+    activitiesList = data || [];
 }
 
-function saveAbsensiToStorage() {
-    localStorage.setItem('scoutos_absensi', JSON.stringify(absensiList));
+async function refreshAbsensi() {
+    const { data, error } = await supabaseClient.from(TABLES.absensi).select('*').order('date', { ascending: false });
+    if (error) { showDataError('memuat ulang data absensi', error); return; }
+    absensiList = data || [];
 }
 
-function saveSkuToStorage() {
-    localStorage.setItem('scoutos_sku', JSON.stringify(skuList));
+async function refreshSku() {
+    const { data, error } = await supabaseClient.from(TABLES.sku).select('*');
+    if (error) { showDataError('memuat ulang data SKU', error); return; }
+    skuList = data || [];
 }
 
-function saveSkkToStorage() {
-    localStorage.setItem('scoutos_skk', JSON.stringify(skkList));
+async function refreshSkk() {
+    const { data, error } = await supabaseClient.from(TABLES.skk).select('*');
+    if (error) { showDataError('memuat ulang data SKK', error); return; }
+    skkList = data || [];
 }
 
 /* =========================================
@@ -607,15 +690,21 @@ function updateBulkDeleteBar() {
     }
 }
 
-function handleBulkDeleteMembers() {
+async function handleBulkDeleteMembers() {
+    if (!ensureSupabaseReady()) return;
     const count = selectedMemberIds.size;
     if (count === 0) return;
 
-    if (confirm(`Apakah Anda yakin ingin menghapus ${count} anggota terpilih? Tindakan ini tidak dapat dibatalkan.`)) {
-        membersList = membersList.filter(m => !selectedMemberIds.has(m.id));
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${count} anggota terpilih? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.members).delete().in('id', Array.from(selectedMemberIds));
+        if (error) throw error;
         selectedMemberIds.clear();
-        saveMembersToStorage();
+        await refreshMembers();
         filterMembersTable();
+    } catch (err) {
+        showDataError('menghapus anggota terpilih', err);
     }
 }
 
@@ -658,8 +747,10 @@ function openEditMemberModal(id) {
     document.getElementById('member-modal').classList.remove('hidden');
 }
 
-function handleSaveMember(e) {
+async function handleSaveMember(e) {
     e.preventDefault();
+    if (!ensureSupabaseReady()) return;
+
     const id = document.getElementById('member-id').value;
     const nis = document.getElementById('m-nis').value.trim();
     const name = document.getElementById('m-name').value.trim();
@@ -680,32 +771,45 @@ function handleSaveMember(e) {
         return;
     }
 
-    if (id) {
-        // Edit Existing Member
-        const index = membersList.findIndex(m => m.id === id);
-        if (index !== -1) {
-            membersList[index] = { ...membersList[index], nis, name, username, password, tingkat, class_name: className, sangga, phone, sku_level: sku, status, primary_role: role };
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...'; }
+
+    try {
+        if (id) {
+            const { error } = await supabaseClient
+                .from(TABLES.members)
+                .update({ nis, name, username, password, tingkat, class_name: className, sangga, phone, sku_level: sku, status, primary_role: role })
+                .eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseClient
+                .from(TABLES.members)
+                .insert([{ id: 'mbr_' + Date.now(), nis, name, username, password, tingkat, class_name: className, sangga, phone, sku_level: sku, status, primary_role: role }]);
+            if (error) throw error;
         }
-    } else {
-        // Add New Member
-        const newMember = {
-            id: 'mbr_' + Date.now(),
-            nis, name, username, password, tingkat, class_name: className, sangga, phone, sku_level: sku, status, primary_role: role
-        };
-        membersList.unshift(newMember);
-    }
 
-    saveMembersToStorage();
-    closeModal('member-modal');
-    filterMembersTable();
-}
-
-function deleteMember(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
-        membersList = membersList.filter(m => m.id !== id);
-        saveMembersToStorage();
+        await refreshMembers();
         closeModal('member-modal');
         filterMembersTable();
+    } catch (err) {
+        showDataError('menyimpan data anggota', err);
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Simpan Anggota'; }
+    }
+}
+
+async function deleteMember(id) {
+    if (!ensureSupabaseReady()) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus anggota ini?')) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.members).delete().eq('id', id);
+        if (error) throw error;
+        await refreshMembers();
+        closeModal('member-modal');
+        filterMembersTable();
+    } catch (err) {
+        showDataError('menghapus anggota', err);
     }
 }
 
@@ -886,8 +990,10 @@ function openEditActivityModal(id) {
     document.getElementById('activity-modal').classList.remove('hidden');
 }
 
-function handleSaveActivity(e) {
+async function handleSaveActivity(e) {
     e.preventDefault();
+    if (!ensureSupabaseReady()) return;
+
     const id = document.getElementById('a-id').value;
     const title = document.getElementById('a-title').value.trim();
     const date = document.getElementById('a-date').value;
@@ -896,25 +1002,39 @@ function handleSaveActivity(e) {
     const status = document.getElementById('a-status').value;
     const desc = document.getElementById('a-desc').value.trim();
 
-    if (id) {
-        const index = activitiesList.findIndex(a => a.id === id);
-        if (index !== -1) {
-            activitiesList[index] = { ...activitiesList[index], title, date, location, pj, status, desc };
+    try {
+        if (id) {
+            const { error } = await supabaseClient
+                .from(TABLES.kegiatan)
+                .update({ title, date, location, pj, status, desc })
+                .eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseClient
+                .from(TABLES.kegiatan)
+                .insert([{ id: 'act_' + Date.now(), title, date, location, pj, status, desc }]);
+            if (error) throw error;
         }
-    } else {
-        activitiesList.unshift({ id: 'act_' + Date.now(), title, date, location, pj, status, desc });
-    }
 
-    saveActivitiesToStorage();
-    closeModal('activity-modal');
-    renderKegiatan(document.getElementById('main-content'));
+        await refreshActivities();
+        closeModal('activity-modal');
+        renderKegiatan(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menyimpan kegiatan', err);
+    }
 }
 
-function deleteActivity(id) {
-    if (confirm('Hapus kegiatan ini?')) {
-        activitiesList = activitiesList.filter(a => a.id !== id);
-        saveActivitiesToStorage();
+async function deleteActivity(id) {
+    if (!ensureSupabaseReady()) return;
+    if (!confirm('Hapus kegiatan ini?')) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.kegiatan).delete().eq('id', id);
+        if (error) throw error;
+        await refreshActivities();
         renderKegiatan(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menghapus kegiatan', err);
     }
 }
 
@@ -991,11 +1111,17 @@ function countAttendance(records) {
     return counts;
 }
 
-function deleteAbsensiSesi(id) {
-    if (confirm('Hapus sesi absensi ini beserta seluruh data kehadirannya?')) {
-        absensiList = absensiList.filter(s => s.id !== id);
-        saveAbsensiToStorage();
+async function deleteAbsensiSesi(id) {
+    if (!ensureSupabaseReady()) return;
+    if (!confirm('Hapus sesi absensi ini beserta seluruh data kehadirannya?')) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.absensi).delete().eq('id', id);
+        if (error) throw error;
+        await refreshAbsensi();
         renderAbsensi(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menghapus sesi absensi', err);
     }
 }
 
@@ -1005,8 +1131,10 @@ function attendanceBadge(status) {
     return `<span class="status-badge ${cls}">${status}</span>`;
 }
 
-function handleSaveAbsensiSesi(e) {
+async function handleSaveAbsensiSesi(e) {
     e.preventDefault();
+    if (!ensureSupabaseReady()) return;
+
     const title = document.getElementById('ab-title').value.trim();
     const date = document.getElementById('ab-date').value;
 
@@ -1014,10 +1142,18 @@ function handleSaveAbsensiSesi(e) {
         .filter(m => m.status === 'aktif')
         .map(m => ({ member_id: m.id, status: 'hadir' }));
 
-    absensiList.unshift({ id: 'abs_' + Date.now(), title, date, records });
-    saveAbsensiToStorage();
-    closeModal('absensi-modal');
-    renderAbsensi(document.getElementById('main-content'));
+    try {
+        const { error } = await supabaseClient
+            .from(TABLES.absensi)
+            .insert([{ id: 'abs_' + Date.now(), title, date, records }]);
+        if (error) throw error;
+
+        await refreshAbsensi();
+        closeModal('absensi-modal');
+        renderAbsensi(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('membuat sesi absensi', err);
+    }
 }
 
 function openAbsensiDetail(sesiId) {
@@ -1054,13 +1190,25 @@ function openAbsensiDetail(sesiId) {
     document.getElementById('absensi-detail-modal').classList.remove('hidden');
 }
 
-function updateAttendanceStatus(sesiId, memberId, newStatus) {
+async function updateAttendanceStatus(sesiId, memberId, newStatus) {
+    if (!ensureSupabaseReady()) return;
     const sesi = absensiList.find(s => s.id === sesiId);
     if (!sesi) return;
     const rec = (sesi.records || []).find(r => r.member_id === memberId);
     if (rec) rec.status = newStatus;
-    saveAbsensiToStorage();
-    renderAbsensi(document.getElementById('main-content'));
+
+    try {
+        const { error } = await supabaseClient
+            .from(TABLES.absensi)
+            .update({ records: sesi.records })
+            .eq('id', sesiId);
+        if (error) throw error;
+
+        await refreshAbsensi();
+        renderAbsensi(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('memperbarui status kehadiran', err);
+    }
 }
 
 /* =========================================
@@ -1140,42 +1288,76 @@ function memberName(id) {
     return m ? m.name : 'Anggota tidak ditemukan';
 }
 
-function handleSaveSku(e) {
+async function handleSaveSku(e) {
     e.preventDefault();
+    if (!ensureSupabaseReady()) return;
+
     const member_id = document.getElementById('sku-member').value;
     const item = document.getElementById('sku-item').value.trim();
     const status = document.getElementById('sku-status').value;
-    skuList.unshift({ id: 'sku_' + Date.now(), member_id, item, status });
-    saveSkuToStorage();
-    closeModal('sku-modal');
-    renderSkuSkk(document.getElementById('main-content'));
-}
 
-function deleteSku(id) {
-    if (confirm('Hapus catatan SKU ini?')) {
-        skuList = skuList.filter(s => s.id !== id);
-        saveSkuToStorage();
+    try {
+        const { error } = await supabaseClient
+            .from(TABLES.sku)
+            .insert([{ id: 'sku_' + Date.now(), member_id, item, status }]);
+        if (error) throw error;
+
+        await refreshSku();
+        closeModal('sku-modal');
         renderSkuSkk(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menyimpan data SKU', err);
     }
 }
 
-function handleSaveSkk(e) {
+async function deleteSku(id) {
+    if (!ensureSupabaseReady()) return;
+    if (!confirm('Hapus catatan SKU ini?')) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.sku).delete().eq('id', id);
+        if (error) throw error;
+        await refreshSku();
+        renderSkuSkk(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menghapus data SKU', err);
+    }
+}
+
+async function handleSaveSkk(e) {
     e.preventDefault();
+    if (!ensureSupabaseReady()) return;
+
     const member_id = document.getElementById('skk-member').value;
     const name = document.getElementById('skk-name').value.trim();
     const bidang = document.getElementById('skk-bidang').value;
     const status = document.getElementById('skk-status').value;
-    skkList.unshift({ id: 'skk_' + Date.now(), member_id, name, bidang, status });
-    saveSkkToStorage();
-    closeModal('skk-modal');
-    renderSkuSkk(document.getElementById('main-content'));
+
+    try {
+        const { error } = await supabaseClient
+            .from(TABLES.skk)
+            .insert([{ id: 'skk_' + Date.now(), member_id, name, bidang, status }]);
+        if (error) throw error;
+
+        await refreshSkk();
+        closeModal('skk-modal');
+        renderSkuSkk(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menyimpan data SKK', err);
+    }
 }
 
-function deleteSkk(id) {
-    if (confirm('Hapus catatan SKK ini?')) {
-        skkList = skkList.filter(s => s.id !== id);
-        saveSkkToStorage();
+async function deleteSkk(id) {
+    if (!ensureSupabaseReady()) return;
+    if (!confirm('Hapus catatan SKK ini?')) return;
+
+    try {
+        const { error } = await supabaseClient.from(TABLES.skk).delete().eq('id', id);
+        if (error) throw error;
+        await refreshSkk();
         renderSkuSkk(document.getElementById('main-content'));
+    } catch (err) {
+        showDataError('menghapus data SKK', err);
     }
 }
 
