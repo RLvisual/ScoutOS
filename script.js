@@ -8,7 +8,7 @@
       di bawah (lihat catatan skema di akhir chat). Kalau nama kolom/tabel
       kamu beda, kasih tahu saya supaya kode ini saya sesuaikan.
 ========================================================================= */
-const SUPABASE_URL = 'https://lctxvvdclarfzpiuojm.supabase.co';
+const SUPABASE_URL = 'https://lctxvvdclarfzpziuojm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjdHh2dmRjbGFyZnpweml1b2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NzY4MjUsImV4cCI6MjEwMjM1MjgyNX0._ELknJwuB_NduSnVoYkKKzThRgRAGMqMU3l3ZucsCAY';
 
 const supabaseClient = (SUPABASE_URL.startsWith('http') && window.supabase)
