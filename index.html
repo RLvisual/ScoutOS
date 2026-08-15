@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScoutOS - Sistem Manajemen Pramuka</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <!-- VIEW: LOGIN -->
+    <div id="login-view" class="view hidden">
+        <div class="login-layout">
+            <div class="login-brand">
+                <div class="brand-content">
+                    <div class="brand-logo-large">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 22h20L12 2z"/><path d="M12 22V10"/><path d="M7 12l5 5 5-5"/></svg>
+                    </div>
+                    <h1>ScoutOS</h1>
+                    <p>Sistem Manajemen Organisasi Pramuka SMK</p>
+                </div>
+            </div>
+            
+            <div class="login-form-container">
+                <div class="login-form-box">
+                    <div class="mobile-brand">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/><path d="M12 22V10"/><path d="M7 12l5 5 5-5"/></svg>
+                        <h2>ScoutOS</h2>
+                    </div>
+                    
+                    <h3>Selamat Datang</h3>
+                    <p class="text-muted">Silakan masuk ke akun Anda</p>
+                    
+                    <div id="login-error" class="alert-error hidden"></div>
+
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" required placeholder="Masukkan username">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <div class="password-input">
+                                <input type="password" id="password" required placeholder="Masukkan password">
+                                <button type="button" id="toggle-password" aria-label="Toggle Password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" id="btn-login" class="btn-primary">Masuk ke Sistem</button>
+                    </form>
+
+                    <div class="demo-accounts">
+                        <p class="demo-title">Akun Demo (Klik untuk mengisi)</p>
+                        <div class="demo-grid">
+                            <button class="demo-btn" data-user="admin" data-pass="admin123">Super Admin</button>
+                            <button class="demo-btn" data-user="ketua" data-pass="ketua123">Ketua</button>
+                            <button class="demo-btn" data-user="bendahara" data-pass="bendahara123">Bendahara</button>
+                            <button class="demo-btn" data-user="anggota" data-pass="anggota123">Anggota</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: APP -->
+    <div id="app-view" class="view hidden">
+        <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/><path d="M12 22V10"/><path d="M7 12l5 5 5-5"/></svg>
+                    <div>
+                        <h2>ScoutOS</h2>
+                        <span>SMK Negeri 1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav id="sidebar-nav" class="sidebar-nav"></nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-small">
+                    <div class="avatar" id="sidebar-avatar">A</div>
+                    <div class="user-info">
+                        <strong id="sidebar-name">Name</strong>
+                        <span id="sidebar-role">Role</span>
+                    </div>
+                </div>
+                <button id="btn-logout" class="btn-logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="btn-menu" class="btn-icon" aria-label="Menu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <h2 id="page-title">Dashboard</h2>
+                </div>
+                <div class="header-right">
+                    <div class="header-profile">
+                        <div class="header-user-info desktop-only">
+                            <strong id="header-name">Name</strong>
+                            <span id="header-role">Role</span>
+                        </div>
+                        <div class="avatar" id="header-avatar">A</div>
+                    </div>
+                </div>
+            </header>
+
+            <main id="main-content" class="main-content"></main>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH / EDIT ANGGOTA -->
+    <div id="member-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-member-title">Tambah Anggota Baru</h3>
+                <button class="btn-close" id="btn-close-member-modal">&times;</button>
+            </div>
+            <form id="member-form">
+                <input type="hidden" id="member-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="m-nis">NIS</label>
+                        <input type="text" id="m-nis" required placeholder="Contoh: 2425001">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-name">Nama Lengkap</label>
+                        <input type="text" id="m-name" required placeholder="Contoh: Andi Pratama">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-username">Username (Login)</label>
+                        <input type="text" id="m-username" required placeholder="Contoh: andi_p">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-password">Password</label>
+                        <input type="text" id="m-password" placeholder="Password untuk akun baru">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-tingkat">Kelas</label>
+                        <select id="m-tingkat" required>
+                            <option value="X">X</option>
+                            <option value="XI">XI</option>
+                            <option value="XII">XII</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="m-class">Jurusan / Rombel</label>
+                        <input type="text" id="m-class" required placeholder="Contoh: TKJ-1">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-sangga">Sangga</label>
+                        <select id="m-sangga">
+                            <option value="Perintis">Perintis</option>
+                            <option value="Pencoba">Pencoba</option>
+                            <option value="Pendobrak">Pendobrak</option>
+                            <option value="Pelaksana">Pelaksana</option>
+                            <option value="Belum Ditentukan">Belum Ditentukan</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="m-phone">Nomor Telepon / WhatsApp</label>
+                        <input type="tel" id="m-phone" placeholder="Contoh: 081234567890">
+                    </div>
+                    <div class="form-group">
+                        <label for="m-sku">Tingkat SKU</label>
+                        <select id="m-sku">
+                            <option value="Ramu">Ramu</option>
+                            <option value="Rakit">Rakit</option>
+                            <option value="Terap">Terap</option>
+                            <option value="Bantara">Bantara</option>
+                            <option value="Laksana">Laksana</option>
+                            <option value="Garuda">Garuda</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="m-status">Status Anggota</label>
+                        <select id="m-status">
+                            <option value="aktif">Aktif</option>
+                            <option value="pending">Pending</option>
+                            <option value="nonaktif">Nonaktif</option>
+                            <option value="diberhentikan">Diberhentikan</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="m-role">Peran Utama (Primary Role)</label>
+                        <select id="m-role">
+                            <option value="super_admin">Super Admin</option>
+                            <option value="pembina">Pembina</option>
+                            <option value="ketua">Ketua</option>
+                            <option value="wakil_ketua">Wakil Ketua</option>
+                            <option value="sekretaris">Sekretaris</option>
+                            <option value="bendahara">Bendahara</option>
+                            <option value="koordinator">Koordinator</option>
+                            <option value="anggota" selected>Anggota</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="form-hint">Field bertanda wajib diisi. ID login (username) harus unik untuk setiap anggota.</p>
+                <div class="modal-actions modal-actions-split">
+                    <button type="button" id="btn-delete-member" class="btn-danger hidden">Hapus Anggota</button>
+                    <div class="modal-actions-right">
+                        <button type="button" id="btn-cancel-member" class="btn-secondary">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan Anggota</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DETAIL / PROFIL ANGGOTA (TAB SWITCHER) -->
+    <div id="member-detail-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="detail-member-title">Profil Anggota</h3>
+                <button class="btn-close" id="btn-close-detail-modal">&times;</button>
+            </div>
+            <div class="member-tabs" id="member-tabs">
+                <button type="button" class="member-tab-btn active" data-tab="info">Info Umum</button>
+                <button type="button" class="member-tab-btn" data-tab="sku">SKU</button>
+                <button type="button" class="member-tab-btn" data-tab="skk">SKK</button>
+                <button type="button" class="member-tab-btn" data-tab="absensi">Absensi</button>
+            </div>
+            <div id="member-tab-content" class="member-tab-content"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: BUAT / EDIT KEGIATAN (TAHAP 3) -->
+    <div id="activity-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-activity-title">Buat Kegiatan Baru</h3>
+                <button class="btn-close" id="btn-close-activity-modal">&times;</button>
+            </div>
+            <form id="activity-form">
+                <input type="hidden" id="a-id">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="a-title">Nama Kegiatan</label>
+                        <input type="text" id="a-title" required placeholder="Contoh: Perkemahan Sabtu Minggu">
+                    </div>
+                    <div class="form-group">
+                        <label for="a-date">Tanggal</label>
+                        <input type="date" id="a-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="a-location">Lokasi</label>
+                        <input type="text" id="a-location" placeholder="Contoh: Bumi Perkemahan Cibubur">
+                    </div>
+                    <div class="form-group">
+                        <label for="a-pj">Penanggung Jawab</label>
+                        <input type="text" id="a-pj" placeholder="Contoh: Kak Budi">
+                    </div>
+                    <div class="form-group">
+                        <label for="a-status">Status</label>
+                        <select id="a-status">
+                            <option value="Direncanakan">Direncanakan</option>
+                            <option value="Berlangsung">Berlangsung</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Dibatalkan">Dibatalkan</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="a-desc">Deskripsi</label>
+                        <input type="text" id="a-desc" placeholder="Deskripsi singkat kegiatan">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-activity" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Kegiatan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SESI ABSENSI BARU (TAHAP 4) -->
+    <div id="absensi-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Buat Sesi Absensi</h3>
+                <button class="btn-close" id="btn-close-absensi-modal">&times;</button>
+            </div>
+            <form id="absensi-form">
+                <div class="form-group">
+                    <label for="ab-title">Nama Sesi / Kegiatan</label>
+                    <input type="text" id="ab-title" required placeholder="Contoh: Latihan Rutin Mingguan">
+                </div>
+                <div class="form-group">
+                    <label for="ab-date">Tanggal</label>
+                    <input type="date" id="ab-date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-absensi" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Buat Sesi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DETAIL SESI ABSENSI (ISI KEHADIRAN) -->
+    <div id="absensi-detail-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="absensi-detail-title">Sesi Absensi</h3>
+                <button class="btn-close" id="btn-close-absensi-detail-modal">&times;</button>
+            </div>
+            <div id="absensi-detail-body" class="table-responsive"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-close-absensi-detail-2" class="btn-secondary">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH SKU (TAHAP 5) -->
+    <div id="sku-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Pencapaian SKU</h3>
+                <button class="btn-close" id="btn-close-sku-modal">&times;</button>
+            </div>
+            <form id="sku-form">
+                <div class="form-group">
+                    <label for="sku-member">Anggota</label>
+                    <select id="sku-member" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="sku-item">Poin / Butir SKU</label>
+                    <input type="text" id="sku-item" required placeholder="Contoh: Poin 1 - Rukun Iman & Islam">
+                </div>
+                <div class="form-group">
+                    <label for="sku-status">Status</label>
+                    <select id="sku-status">
+                        <option value="Proses">Proses</option>
+                        <option value="Selesai">Selesai</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-sku" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan SKU</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH SKK (TAHAP 5) -->
+    <div id="skk-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Pencapaian SKK</h3>
+                <button class="btn-close" id="btn-close-skk-modal">&times;</button>
+            </div>
+            <form id="skk-form">
+                <div class="form-group">
+                    <label for="skk-member">Anggota</label>
+                    <select id="skk-member" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="skk-name">Nama SKK</label>
+                    <input type="text" id="skk-name" required placeholder="Contoh: SKK Juru Masak">
+                </div>
+                <div class="form-group">
+                    <label for="skk-bidang">Bidang</label>
+                    <select id="skk-bidang">
+                        <option value="Agama">Agama, Mental, Spiritual</option>
+                        <option value="Patriotisme">Patriotisme & Seni Budaya</option>
+                        <option value="Ketangkasan">Ketangkasan & Kesehatan</option>
+                        <option value="Keterampilan">Keterampilan & Teknik Pembangunan</option>
+                        <option value="Sosial">Sosial, Perikemanusiaan, Gotong Royong</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="skk-status">Status</label>
+                    <select id="skk-status">
+                        <option value="Proses">Proses</option>
+                        <option value="Selesai">Selesai</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-skk" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan SKK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL LOGOUT -->
+    <div id="logout-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Konfirmasi Keluar</h3>
+            <p>Apakah Anda yakin ingin keluar dari sistem?</p>
+            <div class="modal-actions">
+                <button id="btn-cancel-logout" class="btn-secondary">Batal</button>
+                <button id="btn-confirm-logout" class="btn-danger">Ya, Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
