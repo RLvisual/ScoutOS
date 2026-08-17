@@ -392,6 +392,92 @@
         </div>
     </div>
 
+    <!-- MODAL: TAMBAH PROGRAM KERJA (KETUA) -->
+    <div id="proker-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Program Kerja</h3>
+                <button class="btn-close" id="btn-close-proker-modal">&times;</button>
+            </div>
+            <form id="proker-form">
+                <div class="form-group">
+                    <label for="pk-title">Nama Program Kerja</label>
+                    <input type="text" id="pk-title" required placeholder="Contoh: Latihan Rutin Sabtu">
+                </div>
+                <div class="form-group">
+                    <label for="pk-kategori">Kategori</label>
+                    <select id="pk-kategori" required>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan">Bulanan</option>
+                        <option value="tahunan">Tahunan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pk-target">Target Waktu</label>
+                    <input type="date" id="pk-target">
+                </div>
+                <div class="form-group">
+                    <label for="pk-status">Status</label>
+                    <select id="pk-status">
+                        <option value="Belum Mulai">Belum Mulai</option>
+                        <option value="Berjalan">Berjalan</option>
+                        <option value="Selesai">Selesai</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pk-desc">Deskripsi</label>
+                    <input type="text" id="pk-desc" placeholder="Deskripsi singkat program kerja">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-proker" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Program Kerja</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH TUGAS (KETUA, WAKIL KETUA, SEKRETARIS) -->
+    <div id="tugas-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Tugas</h3>
+                <button class="btn-close" id="btn-close-tugas-modal">&times;</button>
+            </div>
+            <form id="tugas-form">
+                <div class="form-group">
+                    <label for="tg-jenis">Jenis Tugas</label>
+                    <input type="text" id="tg-jenis" required placeholder="Contoh: Menyusun Proposal Kegiatan">
+                </div>
+                <div class="form-group">
+                    <label for="tg-desc">Deskripsi Tugas</label>
+                    <input type="text" id="tg-desc" placeholder="Deskripsi singkat tugas">
+                </div>
+                <div class="form-group">
+                    <label for="tg-bidang">Bidang yang Bertanggung Jawab</label>
+                    <select id="tg-bidang" required>
+                        <option value="Ketua">Ketua</option>
+                        <option value="Wakil Ketua">Wakil Ketua</option>
+                        <option value="Ketua Pelaksana">Ketua Pelaksana</option>
+                        <option value="Juru Adat">Juru Adat</option>
+                        <option value="Sekretaris">Sekretaris</option>
+                        <option value="Bendahara">Bendahara</option>
+                        <option value="Tekpram">Tekpram</option>
+                        <option value="Logistik">Logistik</option>
+                        <option value="PDD">PDD</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tg-deadline">Deadline Tugas</label>
+                    <input type="date" id="tg-deadline">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-tugas" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Tugas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL LOGOUT -->
     <div id="logout-modal" class="modal hidden">
         <div class="modal-content">
