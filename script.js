@@ -142,6 +142,7 @@ let prokerList = [];
 let tugasList = [];
 let pengumumanList = [];
 let activeProkerTab = 'mingguan';
+let keuanganList = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     initDatabase();
@@ -168,6 +169,7 @@ function initDatabase() {
     prokerList = loadFromStorage('scoutos_proker', []);
     tugasList = loadFromStorage('scoutos_tugas', []);
     pengumumanList = loadFromStorage('scoutos_pengumuman', []);
+    keuanganList = loadFromStorage('scoutos_keuangan', []);
 }
 
 function loadFromStorage(key, fallback) {
@@ -213,6 +215,10 @@ function saveTugasToStorage() {
 
 function savePengumumanToStorage() {
     localStorage.setItem('scoutos_pengumuman', JSON.stringify(pengumumanList));
+}
+
+function saveKeuanganToStorage() {
+    localStorage.setItem('scoutos_keuangan', JSON.stringify(keuanganList));
 }
 
 /* Menambahkan satu entri ke feed Pengumuman setiap kali ada perubahan data
@@ -372,6 +378,8 @@ function navigateTo(path, label = 'Dashboard', iconName = 'dashboard') {
         renderTugas(mainContent);
     } else if (path === 'pengumuman') {
         renderPengumuman(mainContent);
+    } else if (path === 'keuangan') {
+        renderKeuangan(mainContent);
     } else {
         renderPlaceholder(mainContent, label, iconName);
     }
@@ -391,6 +399,7 @@ function renderAll() {
     else if (currentPath === 'proker') renderProker(mainContent);
     else if (currentPath === 'tugas') renderTugas(mainContent);
     else if (currentPath === 'pengumuman') renderPengumuman(mainContent);
+    else if (currentPath === 'keuangan') renderKeuangan(mainContent);
 }
 
 /* =========================================
@@ -476,6 +485,21 @@ function canManageProker() {
 function canManageTugas() {
     return ['super_admin', 'ketua', 'wakil_ketua', 'sekretaris'].includes(currentUser.role);
 }
+
+// Hak akses Keuangan:
+// - canManageKeuangan: boleh mencatat/menghapus transaksi & lihat semua detail (termasuk bukti)
+// - canViewKeuanganDetail: boleh lihat daftar transaksi & laporan lengkap, tapi tidak bisa ubah/hapus
+// - Role lain: hanya lihat ringkasan saldo & grafik, tanpa rincian transaksi
+function canManageKeuangan() {
+    return ['super_admin', 'bendahara'].includes(currentUser.role);
+}
+
+function canViewKeuanganDetail() {
+    return ['super_admin', 'bendahara', 'ketua', 'pembina'].includes(currentUser.role);
+}
+
+const KATEGORI_PEMASUKAN = ['Iuran Anggota', 'Sumbangan / Donasi', 'Dana BOS / Sekolah', 'Lain-lain'];
+const KATEGORI_PENGELUARAN = ['Konsumsi', 'Transportasi', 'Perlengkapan & ATK', 'Kegiatan / Acara', 'Administrasi', 'Lain-lain'];
 
 function renderMembersPage(container) {
     const isManager = canManageMembers();
@@ -1458,6 +1482,226 @@ function deleteTugas(id) {
 }
 
 /* =========================================
+   KEUANGAN — BENDAHARA
+========================================= */
+function formatRupiah(angka) {
+    const n = Number(angka) || 0;
+    return 'Rp' + n.toLocaleString('id-ID');
+}
+
+function hitungSaldo() {
+    let masuk = 0, keluar = 0;
+    keuanganList.forEach(t => {
+        if (t.tipe === 'masuk') masuk += Number(t.jumlah) || 0;
+        else keluar += Number(t.jumlah) || 0;
+    });
+    return { masuk, keluar, saldo: masuk - keluar };
+}
+
+// Rekap 6 bulan terakhir (pemasukan vs pengeluaran) untuk grafik batang sederhana
+function rekapBulananKeuangan() {
+    const bulanLabel = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const now = new Date();
+    const bulanList = [];
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        bulanList.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: bulanLabel[d.getMonth()], masuk: 0, keluar: 0 });
+    }
+    keuanganList.forEach(t => {
+        if (!t.tanggal) return;
+        const d = new Date(t.tanggal);
+        if (isNaN(d)) return;
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        const bulan = bulanList.find(b => b.key === key);
+        if (bulan) {
+            if (t.tipe === 'masuk') bulan.masuk += Number(t.jumlah) || 0;
+            else bulan.keluar += Number(t.jumlah) || 0;
+        }
+    });
+    return bulanList;
+}
+
+function renderKeuangan(container) {
+    const isManager = canManageKeuangan();
+    const canViewDetail = canViewKeuanganDetail();
+    const { masuk, keluar, saldo } = hitungSaldo();
+    const rekap = rekapBulananKeuangan();
+    const maxNilai = Math.max(1, ...rekap.map(b => Math.max(b.masuk, b.keluar)));
+    const sorted = [...keuanganList].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+    container.innerHTML = `
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card">
+                <div class="stat-title">Saldo Saat Ini</div>
+                <div class="stat-value">${formatRupiah(saldo)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Pemasukan</div>
+                <div class="stat-value" style="color: var(--primary);">${formatRupiah(masuk)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Pengeluaran</div>
+                <div class="stat-value" style="color: var(--danger);">${formatRupiah(keluar)}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h4>Grafik Keuangan (6 Bulan Terakhir)</h4></div>
+            <div class="card-body">
+                <div class="chart-legend">
+                    <span><i class="legend-dot legend-masuk"></i> Pemasukan</span>
+                    <span><i class="legend-dot legend-keluar"></i> Pengeluaran</span>
+                </div>
+                <div class="bar-chart">
+                    ${rekap.map(b => `
+                        <div class="bar-chart-group">
+                            <div class="bar-chart-bars">
+                                <div class="bar-chart-bar bar-masuk" style="height:${Math.round((b.masuk / maxNilai) * 100)}%;" title="Pemasukan ${formatRupiah(b.masuk)}"></div>
+                                <div class="bar-chart-bar bar-keluar" style="height:${Math.round((b.keluar / maxNilai) * 100)}%;" title="Pengeluaran ${formatRupiah(b.keluar)}"></div>
+                            </div>
+                            <span class="bar-chart-label">${b.label}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+
+        ${canViewDetail ? `
+            <div class="member-controls" style="margin-top: 1.5rem;">
+                <h4 style="font-size:1.1rem;">Riwayat Transaksi</h4>
+                ${isManager ? `
+                    <button class="btn-primary" id="btn-open-keuangan-modal">
+                        ${getIcon('plus')} Catat Transaksi
+                    </button>
+                ` : ''}
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Jenis</th>
+                                <th>Kategori</th>
+                                <th>Keterangan</th>
+                                <th>Jumlah</th>
+                                <th>Bukti</th>
+                                ${isManager ? '<th style="text-align:right;">Aksi</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sorted.length === 0 ? `
+                                <tr><td colspan="${isManager ? 7 : 6}" style="text-align:center; color: var(--text-muted);">Belum ada transaksi yang tercatat</td></tr>
+                            ` : sorted.map(t => `
+                                <tr>
+                                    <td>${formatTanggal(t.tanggal)}</td>
+                                    <td><span class="status-badge ${t.tipe === 'masuk' ? 'status-aktif' : 'status-diberhentikan'}">${t.tipe === 'masuk' ? 'Masuk' : 'Keluar'}</span></td>
+                                    <td>${t.kategori}</td>
+                                    <td>${t.keterangan || '-'}</td>
+                                    <td style="color: ${t.tipe === 'masuk' ? 'var(--primary)' : 'var(--danger)'}; font-weight: 600;">${t.tipe === 'masuk' ? '+' : '-'}${formatRupiah(t.jumlah)}</td>
+                                    <td>${t.bukti ? `<img src="${t.bukti}" class="bukti-thumb" onclick="viewBuktiTransaksi('${t.id}')" alt="Bukti">` : '-'}</td>
+                                    ${isManager ? `
+                                        <td style="text-align:right;">
+                                            <button class="btn-danger btn-sm" onclick="deleteTransaksi('${t.id}')">Hapus</button>
+                                        </td>
+                                    ` : ''}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        ` : `
+            <div class="card">
+                <div class="card-body">
+                    <div class="empty-list">Rincian transaksi hanya dapat dilihat oleh Bendahara, Ketua, dan Pembina.</div>
+                </div>
+            </div>
+        `}
+    `;
+
+    const btnOpen = document.getElementById('btn-open-keuangan-modal');
+    if (btnOpen) btnOpen.addEventListener('click', openAddTransaksiModal);
+}
+
+function openAddTransaksiModal() {
+    document.getElementById('keuangan-form').reset();
+    document.getElementById('kg-bukti-preview').classList.add('hidden');
+    document.getElementById('kg-bukti-preview-img').src = '';
+    populateKategoriOptions();
+    document.getElementById('keuangan-modal').classList.remove('hidden');
+    document.getElementById('keuangan-modal').dataset.buktiData = '';
+}
+
+function populateKategoriOptions() {
+    const tipe = document.getElementById('kg-tipe').value;
+    const kategoriSelect = document.getElementById('kg-kategori');
+    const kategoriList = tipe === 'masuk' ? KATEGORI_PEMASUKAN : KATEGORI_PENGELUARAN;
+    kategoriSelect.innerHTML = kategoriList.map(k => `<option value="${k}">${k}</option>`).join('');
+}
+
+// Mengompres gambar bukti transaksi via canvas sebelum disimpan sebagai
+// base64 di localStorage, supaya tidak cepat memenuhi kuota penyimpanan.
+function compressBuktiImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const maxWidth = 800;
+            const scale = Math.min(1, maxWidth / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleSaveTransaksi(e) {
+    e.preventDefault();
+    const tipe = document.getElementById('kg-tipe').value;
+    const kategori = document.getElementById('kg-kategori').value;
+    const jumlah = Number(document.getElementById('kg-jumlah').value);
+    const tanggal = document.getElementById('kg-tanggal').value;
+    const keterangan = document.getElementById('kg-keterangan').value.trim();
+    const bukti = document.getElementById('keuangan-modal').dataset.buktiData || '';
+
+    if (!jumlah || jumlah <= 0) {
+        alert('Jumlah transaksi harus lebih dari 0.');
+        return;
+    }
+
+    keuanganList.unshift({ id: 'kg_' + Date.now(), tipe, kategori, jumlah, tanggal, keterangan, bukti });
+    saveKeuanganToStorage();
+    // Jumlah nominal sengaja tidak dicantumkan di feed Pengumuman (yang bisa
+    // dilihat semua role) demi menjaga privasi keuangan organisasi.
+    addAnnouncement(`Transaksi kas ${tipe === 'masuk' ? 'masuk' : 'keluar'} kategori "${kategori}" telah dicatat oleh Bendahara.`);
+
+    closeModal('keuangan-modal');
+    renderKeuangan(document.getElementById('main-content'));
+}
+
+function deleteTransaksi(id) {
+    if (confirm('Hapus transaksi ini? Saldo akan otomatis diperbarui.')) {
+        keuanganList = keuanganList.filter(t => t.id !== id);
+        saveKeuanganToStorage();
+        addAnnouncement('Sebuah transaksi keuangan telah dihapus oleh Bendahara.');
+        renderKeuangan(document.getElementById('main-content'));
+    }
+}
+
+function viewBuktiTransaksi(id) {
+    const t = keuanganList.find(k => k.id === id);
+    if (!t || !t.bukti) return;
+    document.getElementById('bukti-viewer-img').src = t.bukti;
+    document.getElementById('bukti-viewer-modal').classList.remove('hidden');
+}
+
+/* =========================================
    PENGUMUMAN — FEED PERUBAHAN SISTEM
    Halaman ini otomatis menampilkan apa saja yang baru terjadi di sistem
    (anggota, kegiatan, absensi, SKU/SKK, proker, tugas), tanpa perlu
@@ -1609,6 +1853,29 @@ function setupEventListeners() {
     document.getElementById('tugas-form').addEventListener('submit', handleSaveTugas);
     document.getElementById('btn-close-tugas-modal').addEventListener('click', () => closeModal('tugas-modal'));
     document.getElementById('btn-cancel-tugas').addEventListener('click', () => closeModal('tugas-modal'));
+
+    // Keuangan Modal Events (Bendahara)
+    document.getElementById('keuangan-form').addEventListener('submit', handleSaveTransaksi);
+    document.getElementById('btn-close-keuangan-modal').addEventListener('click', () => closeModal('keuangan-modal'));
+    document.getElementById('btn-cancel-keuangan').addEventListener('click', () => closeModal('keuangan-modal'));
+    document.getElementById('kg-tipe').addEventListener('change', populateKategoriOptions);
+    document.getElementById('kg-bukti').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('File bukti transaksi harus berupa gambar.');
+            e.target.value = '';
+            return;
+        }
+        compressBuktiImage(file, (dataUrl) => {
+            document.getElementById('keuangan-modal').dataset.buktiData = dataUrl;
+            document.getElementById('kg-bukti-preview-img').src = dataUrl;
+            document.getElementById('kg-bukti-preview').classList.remove('hidden');
+        });
+    });
+
+    // Lightbox Bukti Transaksi
+    document.getElementById('btn-close-bukti-viewer').addEventListener('click', () => closeModal('bukti-viewer-modal'));
 }
 
 function closeSidebar() {
