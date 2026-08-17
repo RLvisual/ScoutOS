@@ -478,6 +478,61 @@
         </div>
     </div>
 
+    <!-- MODAL: CATAT TRANSAKSI KEUANGAN (BENDAHARA) -->
+    <div id="keuangan-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Catat Transaksi</h3>
+                <button class="btn-close" id="btn-close-keuangan-modal">&times;</button>
+            </div>
+            <form id="keuangan-form">
+                <div class="form-group">
+                    <label for="kg-tipe">Jenis Transaksi</label>
+                    <select id="kg-tipe" required>
+                        <option value="masuk">Kas Masuk (Pemasukan)</option>
+                        <option value="keluar">Kas Keluar (Pengeluaran)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="kg-kategori">Kategori</label>
+                    <select id="kg-kategori" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="kg-jumlah">Jumlah (Rp)</label>
+                    <input type="number" id="kg-jumlah" min="0" step="1000" required placeholder="Contoh: 50000">
+                </div>
+                <div class="form-group">
+                    <label for="kg-tanggal">Tanggal</label>
+                    <input type="date" id="kg-tanggal" required>
+                </div>
+                <div class="form-group">
+                    <label for="kg-keterangan">Keterangan</label>
+                    <input type="text" id="kg-keterangan" placeholder="Contoh: Iuran anggota bulan Agustus">
+                </div>
+                <div class="form-group">
+                    <label for="kg-bukti">Bukti Transaksi (opsional, gambar)</label>
+                    <input type="file" id="kg-bukti" accept="image/*">
+                    <div id="kg-bukti-preview" class="bukti-preview hidden"><img id="kg-bukti-preview-img" alt="Preview bukti transaksi"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-keuangan" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: LIHAT BUKTI TRANSAKSI (LIGHTBOX) -->
+    <div id="bukti-viewer-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Bukti Transaksi</h3>
+                <button class="btn-close" id="btn-close-bukti-viewer">&times;</button>
+            </div>
+            <img id="bukti-viewer-img" src="" alt="Bukti transaksi" style="width:100%; border-radius: var(--radius-md); border: 1px solid var(--border);">
+        </div>
+    </div>
+
     <!-- MODAL LOGOUT -->
     <div id="logout-modal" class="modal hidden">
         <div class="modal-content">
