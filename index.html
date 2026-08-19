@@ -610,6 +610,130 @@
         </div>
     </div>
 
+    <!-- MODAL: TAMBAH/EDIT BERITA PRESTASI -->
+    <div id="prestasi-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-prestasi-title">Tulis Berita Prestasi</h3>
+                <button class="btn-close" id="btn-close-prestasi-modal">&times;</button>
+            </div>
+            <form id="prestasi-form">
+                <input type="hidden" id="pr-id">
+                <div class="form-group">
+                    <label for="pr-judul">Judul Prestasi</label>
+                    <input type="text" id="pr-judul" required placeholder="Contoh: Juara 1 Lomba Tapak Kemah Tingkat Kabupaten">
+                </div>
+                <div class="form-group">
+                    <label for="pr-gambar">Gambar / Foto (opsional)</label>
+                    <input type="file" id="pr-gambar" accept="image/*">
+                    <div id="pr-gambar-preview" class="bukti-preview hidden"><img id="pr-gambar-preview-img" alt="Preview gambar prestasi"></div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pr-kategori">Kategori</label>
+                        <select id="pr-kategori" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pr-tanggal">Tanggal</label>
+                        <input type="date" id="pr-tanggal" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="pr-deskripsi">Deskripsi Singkat</label>
+                    <input type="text" id="pr-deskripsi" required placeholder="Ringkasan singkat yang tampil di daftar berita">
+                </div>
+                <div class="form-group">
+                    <label for="pr-artikel">Artikel / Isi Lengkap</label>
+                    <textarea id="pr-artikel" rows="6" placeholder="Ceritakan kronologi dan detail prestasi ini secara lengkap..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-prestasi" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Publikasikan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: BACA BERITA PRESTASI -->
+    <div id="prestasi-detail-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Detail Prestasi</h3>
+                <button class="btn-close" id="btn-close-prestasi-detail-modal">&times;</button>
+            </div>
+            <div id="prestasi-detail-body"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH/EDIT MATERI PENDIDIKAN -->
+    <div id="pendidikan-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-pendidikan-title">Tambah Materi Pendidikan</h3>
+                <button class="btn-close" id="btn-close-pendidikan-modal">&times;</button>
+            </div>
+            <form id="pendidikan-form">
+                <input type="hidden" id="pd-id">
+                <div class="form-group">
+                    <label for="pd-judul">Judul Materi / Pelatihan</label>
+                    <input type="text" id="pd-judul" required placeholder="Contoh: Materi Sandi & Semboyan Pramuka">
+                </div>
+                <div class="form-group">
+                    <label for="pd-jenis">Jenis</label>
+                    <select id="pd-jenis" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="pd-tanggal">Tanggal</label>
+                    <input type="date" id="pd-tanggal">
+                </div>
+                <div class="form-group">
+                    <label for="pd-pengajar">Narasumber / Pengajar</label>
+                    <input type="text" id="pd-pengajar" placeholder="Contoh: Kak Budi">
+                </div>
+                <div class="form-group">
+                    <label for="pd-link">Link Materi (opsional)</label>
+                    <input type="text" id="pd-link" placeholder="Contoh: https://drive.google.com/...">
+                </div>
+                <div class="form-group">
+                    <label for="pd-deskripsi">Deskripsi</label>
+                    <textarea id="pd-deskripsi" rows="4" placeholder="Ringkasan isi materi atau pelatihan"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-pendidikan" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Materi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH POIN ANGGOTA -->
+    <div id="poin-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Poin Anggota</h3>
+                <button class="btn-close" id="btn-close-poin-modal">&times;</button>
+            </div>
+            <form id="poin-form">
+                <div class="form-group">
+                    <label for="pn-member">Anggota</label>
+                    <select id="pn-member" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="pn-poin">Jumlah Poin</label>
+                    <input type="number" id="pn-poin" step="1" required placeholder="Contoh: 10 (isi minus untuk mengurangi, contoh: -5)">
+                </div>
+                <div class="form-group">
+                    <label for="pn-keterangan">Keterangan</label>
+                    <input type="text" id="pn-keterangan" required placeholder="Contoh: Aktif membantu kegiatan perkemahan">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-poin" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Poin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL LOGOUT -->
     <div id="logout-modal" class="modal hidden">
         <div class="modal-content">

@@ -146,6 +146,9 @@ let keuanganList = [];
 let inventarisList = [];
 let peminjamanList = [];
 let activeInventarisTab = 'barang';
+let prestasiList = [];
+let pendidikanList = [];
+let poinList = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     initDatabase();
@@ -175,6 +178,9 @@ function initDatabase() {
     keuanganList = loadFromStorage('scoutos_keuangan', []);
     inventarisList = loadFromStorage('scoutos_inventaris', []);
     peminjamanList = loadFromStorage('scoutos_peminjaman', []);
+    prestasiList = loadFromStorage('scoutos_prestasi', []);
+    pendidikanList = loadFromStorage('scoutos_pendidikan', []);
+    poinList = loadFromStorage('scoutos_poin', []);
 }
 
 function loadFromStorage(key, fallback) {
@@ -232,6 +238,18 @@ function saveInventarisToStorage() {
 
 function savePeminjamanToStorage() {
     localStorage.setItem('scoutos_peminjaman', JSON.stringify(peminjamanList));
+}
+
+function savePrestasiToStorage() {
+    localStorage.setItem('scoutos_prestasi', JSON.stringify(prestasiList));
+}
+
+function savePendidikanToStorage() {
+    localStorage.setItem('scoutos_pendidikan', JSON.stringify(pendidikanList));
+}
+
+function savePoinToStorage() {
+    localStorage.setItem('scoutos_poin', JSON.stringify(poinList));
 }
 
 /* Menambahkan satu entri ke feed Pengumuman setiap kali ada perubahan data
@@ -395,6 +413,12 @@ function navigateTo(path, label = 'Dashboard', iconName = 'dashboard') {
         renderKeuangan(mainContent);
     } else if (path === 'inventaris') {
         renderInventaris(mainContent);
+    } else if (path === 'prestasi') {
+        renderPrestasi(mainContent);
+    } else if (path === 'pendidikan') {
+        renderPendidikan(mainContent);
+    } else if (path === 'poin') {
+        renderPoin(mainContent);
     } else {
         renderPlaceholder(mainContent, label, iconName);
     }
@@ -416,6 +440,9 @@ function renderAll() {
     else if (currentPath === 'pengumuman') renderPengumuman(mainContent);
     else if (currentPath === 'keuangan') renderKeuangan(mainContent);
     else if (currentPath === 'inventaris') renderInventaris(mainContent);
+    else if (currentPath === 'prestasi') renderPrestasi(mainContent);
+    else if (currentPath === 'pendidikan') renderPendidikan(mainContent);
+    else if (currentPath === 'poin') renderPoin(mainContent);
 }
 
 /* =========================================
@@ -524,6 +551,25 @@ function canManageInventaris() {
 
 const KATEGORI_INVENTARIS = ['Perlengkapan Kemah', 'Alat Masak', 'P3K & Kesehatan', 'Bendera & Atribut', 'Alat Tulis & Administrasi', 'Alat Musik / PDD', 'Lain-lain'];
 const KONDISI_INVENTARIS = ['Baik', 'Rusak Ringan', 'Rusak Berat', 'Hilang'];
+
+// Hak akses Prestasi: yang boleh menulis / mengedit berita prestasi
+function canManagePrestasi() {
+    return ['super_admin', 'pembina', 'ketua', 'wakil_ketua', 'sekretaris', 'koordinator'].includes(currentUser.role);
+}
+
+const KATEGORI_PRESTASI = ['Individu', 'Kelompok / Regu', 'Sekolah', 'Lomba / Kompetisi', 'Lain-lain'];
+
+// Hak akses Pendidikan: yang boleh kelola materi/pelatihan kepramukaan
+function canManagePendidikan() {
+    return ['super_admin', 'pembina', 'ketua'].includes(currentUser.role);
+}
+
+const JENIS_PENDIDIKAN = ['Materi Kepramukaan', 'Pelatihan Pembina (KMD/KML)', 'Kursus Mahir', 'Workshop / Seminar', 'Lainnya'];
+
+// Hak akses Poin: yang boleh memberi/mengurangi poin anggota
+function canManagePoin() {
+    return ['super_admin', 'pembina', 'ketua', 'wakil_ketua'].includes(currentUser.role);
+}
 
 function renderMembersPage(container) {
     const isManager = canManageMembers();
@@ -2004,6 +2050,376 @@ function deletePeminjaman(id) {
 }
 
 /* =========================================
+   PRESTASI — BERITA PRESTASI (GALERI)
+========================================= */
+function renderPrestasi(container) {
+    const isManager = canManagePrestasi();
+    const sorted = [...prestasiList].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+    container.innerHTML = `
+        <div class="member-controls">
+            <h4 style="font-size:1.1rem;">Berita Prestasi</h4>
+            ${isManager ? `
+                <button class="btn-primary" id="btn-open-prestasi-modal">
+                    ${getIcon('plus')} Tambah Prestasi
+                </button>
+            ` : ''}
+        </div>
+
+        ${sorted.length === 0 ? `
+            <div class="card"><div class="card-body"><div class="empty-list">Belum ada berita prestasi yang dipublikasikan.</div></div></div>
+        ` : `
+            <div class="prestasi-grid">
+                ${sorted.map(p => `
+                    <div class="prestasi-card">
+                        ${p.gambar ? `<div class="prestasi-card-img" style="background-image:url('${p.gambar}');"></div>` : `<div class="prestasi-card-img prestasi-card-img-placeholder">${getIcon('achievement')}</div>`}
+                        <div class="prestasi-card-body">
+                            <span class="badge-future">${p.kategori}</span>
+                            <h4>${p.judul}</h4>
+                            <p class="prestasi-card-desc">${p.deskripsi}</p>
+                            <div class="prestasi-card-meta">
+                                <span>${formatTanggal(p.tanggal)}</span>
+                                <span>oleh ${p.penulis}</span>
+                            </div>
+                            <div class="prestasi-card-actions">
+                                <button class="btn-secondary btn-sm" onclick="openPrestasiDetail('${p.id}')">Baca Selengkapnya</button>
+                                ${isManager ? `
+                                    <button class="btn-secondary btn-sm" onclick="openEditPrestasiModal('${p.id}')">Edit</button>
+                                    <button class="btn-danger btn-sm" onclick="deletePrestasi('${p.id}')">Hapus</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `}
+    `;
+
+    const btnOpen = document.getElementById('btn-open-prestasi-modal');
+    if (btnOpen) btnOpen.addEventListener('click', openAddPrestasiModal);
+}
+
+function openAddPrestasiModal() {
+    document.getElementById('modal-prestasi-title').textContent = 'Tulis Berita Prestasi';
+    document.getElementById('prestasi-form').reset();
+    document.getElementById('pr-id').value = '';
+    document.getElementById('pr-kategori').innerHTML = KATEGORI_PRESTASI.map(k => `<option value="${k}">${k}</option>`).join('');
+    document.getElementById('pr-gambar-preview').classList.add('hidden');
+    document.getElementById('pr-gambar-preview-img').src = '';
+    document.getElementById('prestasi-modal').dataset.gambarData = '';
+    document.getElementById('prestasi-modal').classList.remove('hidden');
+}
+
+function openEditPrestasiModal(id) {
+    const p = prestasiList.find(x => x.id === id);
+    if (!p) return;
+
+    document.getElementById('modal-prestasi-title').textContent = 'Edit Berita Prestasi';
+    document.getElementById('pr-id').value = p.id;
+    document.getElementById('pr-judul').value = p.judul;
+    document.getElementById('pr-kategori').innerHTML = KATEGORI_PRESTASI.map(k => `<option value="${k}" ${k === p.kategori ? 'selected' : ''}>${k}</option>`).join('');
+    document.getElementById('pr-tanggal').value = p.tanggal || '';
+    document.getElementById('pr-deskripsi').value = p.deskripsi;
+    document.getElementById('pr-artikel').value = p.artikel || '';
+
+    const preview = document.getElementById('pr-gambar-preview');
+    if (p.gambar) {
+        document.getElementById('pr-gambar-preview-img').src = p.gambar;
+        preview.classList.remove('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
+    document.getElementById('prestasi-modal').dataset.gambarData = p.gambar || '';
+
+    document.getElementById('prestasi-modal').classList.remove('hidden');
+}
+
+function handleSavePrestasi(e) {
+    e.preventDefault();
+    const id = document.getElementById('pr-id').value;
+    const judul = document.getElementById('pr-judul').value.trim();
+    const kategori = document.getElementById('pr-kategori').value;
+    const tanggal = document.getElementById('pr-tanggal').value;
+    const deskripsi = document.getElementById('pr-deskripsi').value.trim();
+    const artikel = document.getElementById('pr-artikel').value.trim();
+    const gambar = document.getElementById('prestasi-modal').dataset.gambarData || '';
+
+    if (id) {
+        const index = prestasiList.findIndex(p => p.id === id);
+        if (index !== -1) {
+            prestasiList[index] = { ...prestasiList[index], judul, kategori, tanggal, deskripsi, artikel, gambar };
+        }
+        addAnnouncement(`Berita prestasi "${judul}" telah diperbarui.`);
+    } else {
+        prestasiList.unshift({ id: 'pr_' + Date.now(), judul, kategori, tanggal, deskripsi, artikel, gambar, penulis: currentUser.name });
+        addAnnouncement(`Berita prestasi baru "${judul}" telah dipublikasikan.`);
+    }
+
+    savePrestasiToStorage();
+    closeModal('prestasi-modal');
+    renderPrestasi(document.getElementById('main-content'));
+}
+
+function deletePrestasi(id) {
+    if (confirm('Hapus berita prestasi ini?')) {
+        const p = prestasiList.find(x => x.id === id);
+        prestasiList = prestasiList.filter(x => x.id !== id);
+        savePrestasiToStorage();
+        if (p) addAnnouncement(`Berita prestasi "${p.judul}" telah dihapus.`);
+        renderPrestasi(document.getElementById('main-content'));
+    }
+}
+
+function openPrestasiDetail(id) {
+    const p = prestasiList.find(x => x.id === id);
+    if (!p) return;
+
+    const body = document.getElementById('prestasi-detail-body');
+    body.innerHTML = `
+        ${p.gambar ? `<img src="${p.gambar}" class="prestasi-detail-img" alt="${p.judul}">` : ''}
+        <span class="badge-future" style="margin-top:1rem; display:inline-block;">${p.kategori}</span>
+        <h2 class="prestasi-detail-title">${p.judul}</h2>
+        <div class="prestasi-card-meta" style="margin-bottom:1rem;">
+            <span>${formatTanggal(p.tanggal)}</span>
+            <span>oleh ${p.penulis}</span>
+        </div>
+        <p class="prestasi-detail-artikel">${(p.artikel || p.deskripsi).replace(/\n/g, '<br>')}</p>
+    `;
+
+    document.getElementById('prestasi-detail-modal').classList.remove('hidden');
+}
+
+/* =========================================
+   PENDIDIKAN — MATERI & PELATIHAN KEPRAMUKAAN
+========================================= */
+function renderPendidikan(container) {
+    const isManager = canManagePendidikan();
+    const sorted = [...pendidikanList].sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0));
+
+    container.innerHTML = `
+        <div class="member-controls">
+            <h4 style="font-size:1.1rem;">Materi & Pelatihan Kepramukaan</h4>
+            ${isManager ? `
+                <button class="btn-primary" id="btn-open-pendidikan-modal">
+                    ${getIcon('plus')} Tambah Materi
+                </button>
+            ` : ''}
+        </div>
+
+        ${sorted.length === 0 ? `
+            <div class="card"><div class="card-body"><div class="empty-list">Belum ada materi atau pelatihan yang ditambahkan.</div></div></div>
+        ` : `
+            <div class="pendidikan-list">
+                ${sorted.map(p => `
+                    <div class="card pendidikan-item">
+                        <div class="card-body">
+                            <div class="pendidikan-item-header">
+                                <div>
+                                    <span class="badge-future">${p.jenis}</span>
+                                    <h4 style="margin-top:0.5rem;">${p.judul}</h4>
+                                </div>
+                                ${isManager ? `
+                                    <div class="action-buttons">
+                                        <button class="btn-secondary btn-sm" onclick="openEditPendidikanModal('${p.id}')">Edit</button>
+                                        <button class="btn-danger btn-sm" onclick="deletePendidikan('${p.id}')">Hapus</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${p.deskripsi ? `<p class="pendidikan-item-desc">${p.deskripsi.replace(/\n/g, '<br>')}</p>` : ''}
+                            <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.75rem; color:var(--text-muted); margin-top:0.6rem;">
+                                ${p.tanggal ? `<span>${formatTanggal(p.tanggal)}</span>` : ''}
+                                ${p.pengajar ? `<span>Narasumber: ${p.pengajar}</span>` : ''}
+                                ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:600;">Buka Materi &rarr;</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `}
+    `;
+
+    const btnOpen = document.getElementById('btn-open-pendidikan-modal');
+    if (btnOpen) btnOpen.addEventListener('click', openAddPendidikanModal);
+}
+
+function openAddPendidikanModal() {
+    document.getElementById('modal-pendidikan-title').textContent = 'Tambah Materi Pendidikan';
+    document.getElementById('pendidikan-form').reset();
+    document.getElementById('pd-id').value = '';
+    document.getElementById('pd-jenis').innerHTML = JENIS_PENDIDIKAN.map(j => `<option value="${j}">${j}</option>`).join('');
+    document.getElementById('pendidikan-modal').classList.remove('hidden');
+}
+
+function openEditPendidikanModal(id) {
+    const p = pendidikanList.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('modal-pendidikan-title').textContent = 'Edit Materi Pendidikan';
+    document.getElementById('pd-id').value = p.id;
+    document.getElementById('pd-judul').value = p.judul;
+    document.getElementById('pd-jenis').innerHTML = JENIS_PENDIDIKAN.map(j => `<option value="${j}" ${j === p.jenis ? 'selected' : ''}>${j}</option>`).join('');
+    document.getElementById('pd-tanggal').value = p.tanggal || '';
+    document.getElementById('pd-pengajar').value = p.pengajar || '';
+    document.getElementById('pd-link').value = p.link || '';
+    document.getElementById('pd-deskripsi').value = p.deskripsi || '';
+    document.getElementById('pendidikan-modal').classList.remove('hidden');
+}
+
+function handleSavePendidikan(e) {
+    e.preventDefault();
+    const id = document.getElementById('pd-id').value;
+    const judul = document.getElementById('pd-judul').value.trim();
+    const jenis = document.getElementById('pd-jenis').value;
+    const tanggal = document.getElementById('pd-tanggal').value;
+    const pengajar = document.getElementById('pd-pengajar').value.trim();
+    const link = document.getElementById('pd-link').value.trim();
+    const deskripsi = document.getElementById('pd-deskripsi').value.trim();
+
+    if (id) {
+        const index = pendidikanList.findIndex(p => p.id === id);
+        if (index !== -1) {
+            pendidikanList[index] = { ...pendidikanList[index], judul, jenis, tanggal, pengajar, link, deskripsi };
+        }
+        addAnnouncement(`Materi pendidikan "${judul}" telah diperbarui.`);
+    } else {
+        pendidikanList.unshift({ id: 'pd_' + Date.now(), judul, jenis, tanggal, pengajar, link, deskripsi });
+        addAnnouncement(`Materi pendidikan baru "${judul}" telah ditambahkan.`);
+    }
+
+    savePendidikanToStorage();
+    closeModal('pendidikan-modal');
+    renderPendidikan(document.getElementById('main-content'));
+}
+
+function deletePendidikan(id) {
+    if (confirm('Hapus materi pendidikan ini?')) {
+        const p = pendidikanList.find(x => x.id === id);
+        pendidikanList = pendidikanList.filter(x => x.id !== id);
+        savePendidikanToStorage();
+        if (p) addAnnouncement(`Materi pendidikan "${p.judul}" telah dihapus.`);
+        renderPendidikan(document.getElementById('main-content'));
+    }
+}
+
+/* =========================================
+   POIN SAYA — SISTEM POIN ANGGOTA
+========================================= */
+function hitungTotalPoin(memberId) {
+    return poinList
+        .filter(p => p.member_id === memberId)
+        .reduce((sum, p) => sum + (Number(p.poin) || 0), 0);
+}
+
+function renderPoin(container) {
+    const isManager = canManagePoin();
+    const myId = currentUser.id;
+    const myTotal = hitungTotalPoin(myId);
+    const myHistory = poinList.filter(p => p.member_id === myId).sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+    container.innerHTML = `
+        <div class="stats-grid" style="grid-template-columns: 1fr; max-width: 320px; margin-bottom: 1.5rem;">
+            <div class="stat-card">
+                <div class="stat-title">Total Poin Saya</div>
+                <div class="stat-value">${myTotal}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h4>Riwayat Poin Saya</h4></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Poin</th><th>Diberikan Oleh</th></tr></thead>
+                    <tbody>
+                        ${myHistory.length === 0 ? `
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Belum ada riwayat poin</td></tr>
+                        ` : myHistory.map(p => `
+                            <tr>
+                                <td>${formatTanggal(p.tanggal)}</td>
+                                <td>${p.keterangan}</td>
+                                <td style="color: ${p.poin >= 0 ? 'var(--primary)' : 'var(--danger)'}; font-weight:600;">${p.poin >= 0 ? '+' : ''}${p.poin}</td>
+                                <td>${p.oleh}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        ${isManager ? `
+            <div class="member-controls" style="margin-top: 1.5rem;">
+                <h4 style="font-size:1.1rem;">Papan Peringkat Poin Anggota</h4>
+                <button class="btn-primary" id="btn-open-poin-modal">
+                    ${getIcon('plus')} Tambah Poin
+                </button>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>Peringkat</th><th>Nama</th><th>Kelas</th><th>Total Poin</th></tr></thead>
+                        <tbody>
+                            ${renderPapanPeringkat()}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        ` : ''}
+    `;
+
+    const btnOpen = document.getElementById('btn-open-poin-modal');
+    if (btnOpen) btnOpen.addEventListener('click', openAddPoinModal);
+}
+
+function renderPapanPeringkat() {
+    const ranked = membersList
+        .map(m => ({ member: m, total: hitungTotalPoin(m.id) }))
+        .sort((a, b) => b.total - a.total);
+
+    if (ranked.length === 0) {
+        return `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Belum ada data anggota</td></tr>`;
+    }
+
+    return ranked.map((r, i) => `
+        <tr>
+            <td>#${i + 1}</td>
+            <td><strong>${r.member.name}</strong></td>
+            <td>${r.member.tingkat ? r.member.tingkat + ' - ' : ''}${r.member.class_name || '-'}</td>
+            <td><strong>${r.total}</strong></td>
+        </tr>
+    `).join('');
+}
+
+function openAddPoinModal() {
+    document.getElementById('poin-form').reset();
+    document.getElementById('pn-member').innerHTML = membersList.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    document.getElementById('poin-modal').classList.remove('hidden');
+}
+
+function handleSavePoin(e) {
+    e.preventDefault();
+    const member_id = document.getElementById('pn-member').value;
+    const poin = Number(document.getElementById('pn-poin').value);
+    const keterangan = document.getElementById('pn-keterangan').value.trim();
+
+    if (!poin) {
+        alert('Jumlah poin tidak boleh 0.');
+        return;
+    }
+
+    poinList.unshift({
+        id: 'pn_' + Date.now(),
+        member_id,
+        poin,
+        keterangan,
+        tanggal: new Date().toISOString().split('T')[0],
+        oleh: currentUser.name
+    });
+    savePoinToStorage();
+    addAnnouncement(`${memberName(member_id)} mendapat ${poin >= 0 ? '+' : ''}${poin} poin: ${keterangan}.`);
+
+    closeModal('poin-modal');
+    renderPoin(document.getElementById('main-content'));
+}
+
+/* =========================================
    PENGUMUMAN — FEED PERUBAHAN SISTEM
    Halaman ini otomatis menampilkan apa saja yang baru terjadi di sistem
    (anggota, kegiatan, absensi, SKU/SKK, proker, tugas), tanpa perlu
@@ -2126,4 +2542,105 @@ function setupEventListeners() {
 
     // Kegiatan Modal Events (Tahap 3)
     document.getElementById('activity-form').addEventListener('submit', handleSaveActivity);
-    document.getElementById('btn-close-activity-modal').addEventListener('click', () => closeModal('act
+    document.getElementById('btn-close-activity-modal').addEventListener('click', () => closeModal('activity-modal'));
+    document.getElementById('btn-cancel-activity').addEventListener('click', () => closeModal('activity-modal'));
+
+    // Absensi Modal Events (Tahap 4)
+    document.getElementById('absensi-form').addEventListener('submit', handleSaveAbsensiSesi);
+    document.getElementById('btn-close-absensi-modal').addEventListener('click', () => closeModal('absensi-modal'));
+    document.getElementById('btn-cancel-absensi').addEventListener('click', () => closeModal('absensi-modal'));
+    document.getElementById('btn-close-absensi-detail-modal').addEventListener('click', () => closeModal('absensi-detail-modal'));
+    document.getElementById('btn-close-absensi-detail-2').addEventListener('click', () => closeModal('absensi-detail-modal'));
+
+    // SKU Modal Events (Tahap 5)
+    document.getElementById('sku-form').addEventListener('submit', handleSaveSku);
+    document.getElementById('btn-close-sku-modal').addEventListener('click', () => closeModal('sku-modal'));
+    document.getElementById('btn-cancel-sku').addEventListener('click', () => closeModal('sku-modal'));
+
+    // SKK Modal Events (Tahap 5)
+    document.getElementById('skk-form').addEventListener('submit', handleSaveSkk);
+    document.getElementById('btn-close-skk-modal').addEventListener('click', () => closeModal('skk-modal'));
+    document.getElementById('btn-cancel-skk').addEventListener('click', () => closeModal('skk-modal'));
+
+    // Program Kerja Modal Events (Ketua)
+    document.getElementById('proker-form').addEventListener('submit', handleSaveProker);
+    document.getElementById('btn-close-proker-modal').addEventListener('click', () => closeModal('proker-modal'));
+    document.getElementById('btn-cancel-proker').addEventListener('click', () => closeModal('proker-modal'));
+
+    // Tugas Modal Events (Ketua, Wakil Ketua, Sekretaris)
+    document.getElementById('tugas-form').addEventListener('submit', handleSaveTugas);
+    document.getElementById('btn-close-tugas-modal').addEventListener('click', () => closeModal('tugas-modal'));
+    document.getElementById('btn-cancel-tugas').addEventListener('click', () => closeModal('tugas-modal'));
+
+    // Keuangan Modal Events (Bendahara)
+    document.getElementById('keuangan-form').addEventListener('submit', handleSaveTransaksi);
+    document.getElementById('btn-close-keuangan-modal').addEventListener('click', () => closeModal('keuangan-modal'));
+    document.getElementById('btn-cancel-keuangan').addEventListener('click', () => closeModal('keuangan-modal'));
+    document.getElementById('kg-tipe').addEventListener('change', populateKategoriOptions);
+    document.getElementById('kg-bukti').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('File bukti transaksi harus berupa gambar.');
+            e.target.value = '';
+            return;
+        }
+        compressBuktiImage(file, (dataUrl) => {
+            document.getElementById('keuangan-modal').dataset.buktiData = dataUrl;
+            document.getElementById('kg-bukti-preview-img').src = dataUrl;
+            document.getElementById('kg-bukti-preview').classList.remove('hidden');
+        });
+    });
+
+    // Lightbox Bukti Transaksi
+    document.getElementById('btn-close-bukti-viewer').addEventListener('click', () => closeModal('bukti-viewer-modal'));
+
+    // Inventaris Modal Events
+    document.getElementById('inventaris-form').addEventListener('submit', handleSaveInventaris);
+    document.getElementById('btn-close-inventaris-modal').addEventListener('click', () => closeModal('inventaris-modal'));
+    document.getElementById('btn-cancel-inventaris').addEventListener('click', () => closeModal('inventaris-modal'));
+
+    // Peminjaman Modal Events
+    document.getElementById('peminjaman-form').addEventListener('submit', handleSavePeminjaman);
+    document.getElementById('btn-close-peminjaman-modal').addEventListener('click', () => closeModal('peminjaman-modal'));
+    document.getElementById('btn-cancel-peminjaman').addEventListener('click', () => closeModal('peminjaman-modal'));
+
+    // Prestasi Modal Events
+    document.getElementById('prestasi-form').addEventListener('submit', handleSavePrestasi);
+    document.getElementById('btn-close-prestasi-modal').addEventListener('click', () => closeModal('prestasi-modal'));
+    document.getElementById('btn-cancel-prestasi').addEventListener('click', () => closeModal('prestasi-modal'));
+    document.getElementById('pr-gambar').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('File gambar prestasi harus berupa gambar.');
+            e.target.value = '';
+            return;
+        }
+        compressBuktiImage(file, (dataUrl) => {
+            document.getElementById('prestasi-modal').dataset.gambarData = dataUrl;
+            document.getElementById('pr-gambar-preview-img').src = dataUrl;
+            document.getElementById('pr-gambar-preview').classList.remove('hidden');
+        });
+    });
+    document.getElementById('btn-close-prestasi-detail-modal').addEventListener('click', () => closeModal('prestasi-detail-modal'));
+
+    // Pendidikan Modal Events
+    document.getElementById('pendidikan-form').addEventListener('submit', handleSavePendidikan);
+    document.getElementById('btn-close-pendidikan-modal').addEventListener('click', () => closeModal('pendidikan-modal'));
+    document.getElementById('btn-cancel-pendidikan').addEventListener('click', () => closeModal('pendidikan-modal'));
+
+    // Poin Modal Events
+    document.getElementById('poin-form').addEventListener('submit', handleSavePoin);
+    document.getElementById('btn-close-poin-modal').addEventListener('click', () => closeModal('poin-modal'));
+    document.getElementById('btn-cancel-poin').addEventListener('click', () => closeModal('poin-modal'));
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}

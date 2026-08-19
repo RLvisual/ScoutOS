@@ -62,12 +62,14 @@ body { background-color: var(--background); background-image: radial-gradient(ci
 /* Forms & Controls */
 .form-group { margin-bottom: 1.25rem; }
 .form-group label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
-input[type="text"], input[type="password"], input[type="tel"], select {
+input[type="text"], input[type="password"], input[type="tel"], input[type="date"], input[type="number"], input[type="file"], select, textarea {
     width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border);
     border-radius: var(--radius-md); outline: none; transition: var(--transition);
     background-color: var(--surface); color: var(--text-main); font-size: 0.875rem;
+    font-family: inherit;
 }
-input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
 .password-input { position: relative; }
 .password-input button { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; }
 .password-input button svg { width: 20px; height: 20px; }
@@ -281,3 +283,32 @@ code { background: var(--primary-soft); color: var(--primary-dark); padding: 0.1
 .bukti-thumb:hover { transform: scale(1.15); box-shadow: var(--shadow-md); }
 .bukti-preview { margin-top: 0.6rem; }
 .bukti-preview img { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border); }
+
+/* =========================================
+   PRESTASI — GALERI BERITA
+========================================= */
+.prestasi-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+@media (min-width: 640px) { .prestasi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .prestasi-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.prestasi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); transition: var(--transition); display: flex; flex-direction: column; }
+.prestasi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--primary-light); }
+.prestasi-card-img { height: 160px; background-size: cover; background-position: center; background-color: var(--primary-soft); }
+.prestasi-card-img-placeholder { display: flex; align-items: center; justify-content: center; color: var(--primary); opacity: 0.5; }
+.prestasi-card-img-placeholder svg { width: 48px; height: 48px; }
+.prestasi-card-body { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.55rem; flex: 1; }
+.prestasi-card-body h4 { font-size: 1rem; line-height: 1.3; }
+.prestasi-card-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.prestasi-card-meta { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); }
+.prestasi-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+
+.prestasi-detail-img { width: 100%; max-height: 320px; object-fit: cover; border-radius: var(--radius-md); }
+.prestasi-detail-title { font-size: 1.3rem; margin: 0.75rem 0 0.25rem; }
+.prestasi-detail-artikel { font-size: 0.9rem; line-height: 1.7; color: var(--text-main); white-space: pre-line; }
+
+/* =========================================
+   PENDIDIKAN
+========================================= */
+.pendidikan-list { display: flex; flex-direction: column; gap: 1rem; }
+.pendidikan-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.pendidikan-item-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.5rem; }
