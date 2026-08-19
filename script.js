@@ -143,6 +143,9 @@ let tugasList = [];
 let pengumumanList = [];
 let activeProkerTab = 'mingguan';
 let keuanganList = [];
+let inventarisList = [];
+let peminjamanList = [];
+let activeInventarisTab = 'barang';
 
 document.addEventListener('DOMContentLoaded', () => {
     initDatabase();
@@ -170,6 +173,8 @@ function initDatabase() {
     tugasList = loadFromStorage('scoutos_tugas', []);
     pengumumanList = loadFromStorage('scoutos_pengumuman', []);
     keuanganList = loadFromStorage('scoutos_keuangan', []);
+    inventarisList = loadFromStorage('scoutos_inventaris', []);
+    peminjamanList = loadFromStorage('scoutos_peminjaman', []);
 }
 
 function loadFromStorage(key, fallback) {
@@ -219,6 +224,14 @@ function savePengumumanToStorage() {
 
 function saveKeuanganToStorage() {
     localStorage.setItem('scoutos_keuangan', JSON.stringify(keuanganList));
+}
+
+function saveInventarisToStorage() {
+    localStorage.setItem('scoutos_inventaris', JSON.stringify(inventarisList));
+}
+
+function savePeminjamanToStorage() {
+    localStorage.setItem('scoutos_peminjaman', JSON.stringify(peminjamanList));
 }
 
 /* Menambahkan satu entri ke feed Pengumuman setiap kali ada perubahan data
@@ -380,6 +393,8 @@ function navigateTo(path, label = 'Dashboard', iconName = 'dashboard') {
         renderPengumuman(mainContent);
     } else if (path === 'keuangan') {
         renderKeuangan(mainContent);
+    } else if (path === 'inventaris') {
+        renderInventaris(mainContent);
     } else {
         renderPlaceholder(mainContent, label, iconName);
     }
@@ -400,6 +415,7 @@ function renderAll() {
     else if (currentPath === 'tugas') renderTugas(mainContent);
     else if (currentPath === 'pengumuman') renderPengumuman(mainContent);
     else if (currentPath === 'keuangan') renderKeuangan(mainContent);
+    else if (currentPath === 'inventaris') renderInventaris(mainContent);
 }
 
 /* =========================================
@@ -500,6 +516,14 @@ function canViewKeuanganDetail() {
 
 const KATEGORI_PEMASUKAN = ['Iuran Anggota', 'Sumbangan / Donasi', 'Dana BOS / Sekolah', 'Lain-lain'];
 const KATEGORI_PENGELUARAN = ['Konsumsi', 'Transportasi', 'Perlengkapan & ATK', 'Kegiatan / Acara', 'Administrasi', 'Lain-lain'];
+
+// Hak akses Inventaris: yang boleh kelola daftar barang & mencatat peminjaman
+function canManageInventaris() {
+    return ['super_admin', 'ketua', 'koordinator', 'pembina'].includes(currentUser.role);
+}
+
+const KATEGORI_INVENTARIS = ['Perlengkapan Kemah', 'Alat Masak', 'P3K & Kesehatan', 'Bendera & Atribut', 'Alat Tulis & Administrasi', 'Alat Musik / PDD', 'Lain-lain'];
+const KONDISI_INVENTARIS = ['Baik', 'Rusak Ringan', 'Rusak Berat', 'Hilang'];
 
 function renderMembersPage(container) {
     const isManager = canManageMembers();
@@ -1702,6 +1726,284 @@ function viewBuktiTransaksi(id) {
 }
 
 /* =========================================
+   INVENTARIS
+========================================= */
+// Jumlah barang yang sedang dipinjam (status masih "Dipinjam")
+function jumlahSedangDipinjam(itemId) {
+    return peminjamanList
+        .filter(p => p.item_id === itemId && p.status === 'Dipinjam')
+        .reduce((sum, p) => sum + (Number(p.jumlah) || 0), 0);
+}
+
+function jumlahTersedia(item) {
+    return Math.max(0, (Number(item.jumlah) || 0) - jumlahSedangDipinjam(item.id));
+}
+
+function inventarisItemName(id) {
+    const item = inventarisList.find(i => i.id === id);
+    return item ? item.nama : 'Barang tidak ditemukan';
+}
+
+function kondisiBadgeClass(kondisi) {
+    if (kondisi === 'Baik') return 'status-aktif';
+    if (kondisi === 'Rusak Ringan') return 'status-pending';
+    if (kondisi === 'Rusak Berat' || kondisi === 'Hilang') return 'status-diberhentikan';
+    return 'status-nonaktif';
+}
+
+function renderInventaris(container) {
+    const isManager = canManageInventaris();
+
+    container.innerHTML = `
+        <div class="member-controls">
+            <div class="proker-tabs" id="inventaris-tabs">
+                <button type="button" class="member-tab-btn ${activeInventarisTab === 'barang' ? 'active' : ''}" data-tab="barang">Daftar Barang</button>
+                <button type="button" class="member-tab-btn ${activeInventarisTab === 'peminjaman' ? 'active' : ''}" data-tab="peminjaman">Peminjaman</button>
+            </div>
+            ${isManager ? `
+                <button class="btn-primary" id="btn-open-inventaris-action">
+                    ${getIcon('plus')} ${activeInventarisTab === 'barang' ? 'Tambah Barang' : 'Catat Peminjaman'}
+                </button>
+            ` : ''}
+        </div>
+
+        <div id="inventaris-content-container"></div>
+    `;
+
+    renderInventarisContent();
+
+    document.querySelectorAll('#inventaris-tabs .member-tab-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            activeInventarisTab = this.getAttribute('data-tab');
+            renderInventaris(document.getElementById('main-content'));
+        });
+    });
+
+    const btnAction = document.getElementById('btn-open-inventaris-action');
+    if (btnAction) btnAction.addEventListener('click', () => {
+        if (activeInventarisTab === 'barang') {
+            openAddInventarisModal();
+        } else {
+            openAddPeminjamanModal();
+        }
+    });
+}
+
+function renderInventarisContent() {
+    const container = document.getElementById('inventaris-content-container');
+    if (!container) return;
+    const isManager = canManageInventaris();
+
+    if (activeInventarisTab === 'barang') {
+        container.innerHTML = `
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Barang</th>
+                                <th>Kategori</th>
+                                <th>Total</th>
+                                <th>Tersedia</th>
+                                <th>Kondisi</th>
+                                <th>Lokasi</th>
+                                ${isManager ? '<th style="text-align:right;">Aksi</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${inventarisList.length === 0 ? `
+                                <tr><td colspan="${isManager ? 7 : 6}" style="text-align:center; color: var(--text-muted);">Belum ada barang inventaris yang tercatat</td></tr>
+                            ` : inventarisList.map(item => {
+                                const tersedia = jumlahTersedia(item);
+                                return `
+                                    <tr>
+                                        <td><strong>${item.nama}</strong>${item.keterangan ? `<div style="color:var(--text-muted); font-size:0.75rem;">${item.keterangan}</div>` : ''}</td>
+                                        <td>${item.kategori}</td>
+                                        <td>${item.jumlah}</td>
+                                        <td><span class="status-badge ${tersedia > 0 ? 'status-aktif' : 'status-diberhentikan'}">${tersedia}</span></td>
+                                        <td><span class="status-badge ${kondisiBadgeClass(item.kondisi)}">${item.kondisi}</span></td>
+                                        <td>${item.lokasi || '-'}</td>
+                                        ${isManager ? `
+                                            <td style="text-align:right;">
+                                                <div class="action-buttons" style="justify-content:flex-end;">
+                                                    <button class="btn-secondary btn-sm" onclick="openEditInventarisModal('${item.id}')">Edit</button>
+                                                    <button class="btn-danger btn-sm" onclick="deleteInventaris('${item.id}')">Hapus</button>
+                                                </div>
+                                            </td>
+                                        ` : ''}
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } else {
+        const sorted = [...peminjamanList].sort((a, b) => new Date(b.tanggal_pinjam) - new Date(a.tanggal_pinjam));
+        container.innerHTML = `
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Barang</th>
+                                <th>Jumlah</th>
+                                <th>Peminjam</th>
+                                <th>Tgl Pinjam</th>
+                                <th>Estimasi Kembali</th>
+                                <th>Status</th>
+                                ${isManager ? '<th style="text-align:right;">Aksi</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sorted.length === 0 ? `
+                                <tr><td colspan="${isManager ? 7 : 6}" style="text-align:center; color: var(--text-muted);">Belum ada catatan peminjaman</td></tr>
+                            ` : sorted.map(p => `
+                                <tr>
+                                    <td><strong>${inventarisItemName(p.item_id)}</strong></td>
+                                    <td>${p.jumlah}</td>
+                                    <td>${p.peminjam}</td>
+                                    <td>${formatTanggal(p.tanggal_pinjam)}</td>
+                                    <td>${p.estimasi_kembali ? formatTanggal(p.estimasi_kembali) : '-'}</td>
+                                    <td><span class="status-badge ${p.status === 'Dikembalikan' ? 'status-aktif' : 'status-pending'}">${p.status}</span></td>
+                                    ${isManager ? `
+                                        <td style="text-align:right;">
+                                            <div class="action-buttons" style="justify-content:flex-end;">
+                                                ${p.status === 'Dipinjam' ? `<button class="btn-secondary btn-sm" onclick="tandaiDikembalikan('${p.id}')">Tandai Kembali</button>` : ''}
+                                                <button class="btn-danger btn-sm" onclick="deletePeminjaman('${p.id}')">Hapus</button>
+                                            </div>
+                                        </td>
+                                    ` : ''}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function openAddInventarisModal() {
+    document.getElementById('modal-inventaris-title').textContent = 'Tambah Barang Inventaris';
+    document.getElementById('inventaris-form').reset();
+    document.getElementById('inv-id').value = '';
+    document.getElementById('inv-kategori').innerHTML = KATEGORI_INVENTARIS.map(k => `<option value="${k}">${k}</option>`).join('');
+    document.getElementById('inv-kondisi').innerHTML = KONDISI_INVENTARIS.map(k => `<option value="${k}">${k}</option>`).join('');
+    document.getElementById('inventaris-modal').classList.remove('hidden');
+}
+
+function openEditInventarisModal(id) {
+    const item = inventarisList.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('modal-inventaris-title').textContent = 'Edit Barang Inventaris';
+    document.getElementById('inv-id').value = item.id;
+    document.getElementById('inv-nama').value = item.nama;
+    document.getElementById('inv-kategori').innerHTML = KATEGORI_INVENTARIS.map(k => `<option value="${k}" ${k === item.kategori ? 'selected' : ''}>${k}</option>`).join('');
+    document.getElementById('inv-jumlah').value = item.jumlah;
+    document.getElementById('inv-kondisi').innerHTML = KONDISI_INVENTARIS.map(k => `<option value="${k}" ${k === item.kondisi ? 'selected' : ''}>${k}</option>`).join('');
+    document.getElementById('inv-lokasi').value = item.lokasi || '';
+    document.getElementById('inv-keterangan').value = item.keterangan || '';
+    document.getElementById('inventaris-modal').classList.remove('hidden');
+}
+
+function handleSaveInventaris(e) {
+    e.preventDefault();
+    const id = document.getElementById('inv-id').value;
+    const nama = document.getElementById('inv-nama').value.trim();
+    const kategori = document.getElementById('inv-kategori').value;
+    const jumlah = Number(document.getElementById('inv-jumlah').value);
+    const kondisi = document.getElementById('inv-kondisi').value;
+    const lokasi = document.getElementById('inv-lokasi').value.trim();
+    const keterangan = document.getElementById('inv-keterangan').value.trim();
+
+    if (id) {
+        const index = inventarisList.findIndex(i => i.id === id);
+        if (index !== -1) {
+            inventarisList[index] = { ...inventarisList[index], nama, kategori, jumlah, kondisi, lokasi, keterangan };
+        }
+        addAnnouncement(`Data barang inventaris "${nama}" telah diperbarui.`);
+    } else {
+        inventarisList.unshift({ id: 'inv_' + Date.now(), nama, kategori, jumlah, kondisi, lokasi, keterangan });
+        addAnnouncement(`Barang inventaris baru "${nama}" telah ditambahkan.`);
+    }
+
+    saveInventarisToStorage();
+    closeModal('inventaris-modal');
+    renderInventaris(document.getElementById('main-content'));
+}
+
+function deleteInventaris(id) {
+    if (confirm('Hapus barang inventaris ini? Riwayat peminjaman terkait barang ini tidak akan otomatis terhapus.')) {
+        const item = inventarisList.find(i => i.id === id);
+        inventarisList = inventarisList.filter(i => i.id !== id);
+        saveInventarisToStorage();
+        if (item) addAnnouncement(`Barang inventaris "${item.nama}" telah dihapus.`);
+        renderInventaris(document.getElementById('main-content'));
+    }
+}
+
+function openAddPeminjamanModal() {
+    if (inventarisList.length === 0) {
+        alert('Belum ada barang inventaris yang bisa dipinjam. Tambahkan barang terlebih dahulu.');
+        return;
+    }
+    document.getElementById('peminjaman-form').reset();
+    document.getElementById('pm-item').innerHTML = inventarisList.map(item => {
+        const tersedia = jumlahTersedia(item);
+        return `<option value="${item.id}" ${tersedia <= 0 ? 'disabled' : ''}>${item.nama} (tersedia: ${tersedia})</option>`;
+    }).join('');
+    document.getElementById('peminjaman-modal').classList.remove('hidden');
+}
+
+function handleSavePeminjaman(e) {
+    e.preventDefault();
+    const item_id = document.getElementById('pm-item').value;
+    const jumlah = Number(document.getElementById('pm-jumlah').value);
+    const peminjam = document.getElementById('pm-peminjam').value.trim();
+    const tanggal_pinjam = document.getElementById('pm-tanggal-pinjam').value;
+    const estimasi_kembali = document.getElementById('pm-estimasi-kembali').value;
+
+    const item = inventarisList.find(i => i.id === item_id);
+    const tersedia = item ? jumlahTersedia(item) : 0;
+
+    if (!jumlah || jumlah <= 0) {
+        alert('Jumlah yang dipinjam harus lebih dari 0.');
+        return;
+    }
+    if (jumlah > tersedia) {
+        alert(`Jumlah yang dipinjam melebihi stok tersedia. Stok tersedia saat ini: ${tersedia}.`);
+        return;
+    }
+
+    peminjamanList.unshift({ id: 'pm_' + Date.now(), item_id, jumlah, peminjam, tanggal_pinjam, estimasi_kembali, status: 'Dipinjam' });
+    savePeminjamanToStorage();
+    addAnnouncement(`${peminjam} meminjam ${jumlah} ${inventarisItemName(item_id)}.`);
+
+    closeModal('peminjaman-modal');
+    renderInventaris(document.getElementById('main-content'));
+}
+
+function tandaiDikembalikan(id) {
+    const p = peminjamanList.find(pm => pm.id === id);
+    if (!p) return;
+    p.status = 'Dikembalikan';
+    p.tanggal_dikembalikan = new Date().toISOString().split('T')[0];
+    savePeminjamanToStorage();
+    addAnnouncement(`${p.peminjam} telah mengembalikan ${p.jumlah} ${inventarisItemName(p.item_id)}.`);
+    renderInventaris(document.getElementById('main-content'));
+}
+
+function deletePeminjaman(id) {
+    if (confirm('Hapus catatan peminjaman ini?')) {
+        peminjamanList = peminjamanList.filter(p => p.id !== id);
+        savePeminjamanToStorage();
+        renderInventaris(document.getElementById('main-content'));
+    }
+}
+
+/* =========================================
    PENGUMUMAN — FEED PERUBAHAN SISTEM
    Halaman ini otomatis menampilkan apa saja yang baru terjadi di sistem
    (anggota, kegiatan, absensi, SKU/SKK, proker, tugas), tanpa perlu
@@ -1824,65 +2126,4 @@ function setupEventListeners() {
 
     // Kegiatan Modal Events (Tahap 3)
     document.getElementById('activity-form').addEventListener('submit', handleSaveActivity);
-    document.getElementById('btn-close-activity-modal').addEventListener('click', () => closeModal('activity-modal'));
-    document.getElementById('btn-cancel-activity').addEventListener('click', () => closeModal('activity-modal'));
-
-    // Absensi Modal Events (Tahap 4)
-    document.getElementById('absensi-form').addEventListener('submit', handleSaveAbsensiSesi);
-    document.getElementById('btn-close-absensi-modal').addEventListener('click', () => closeModal('absensi-modal'));
-    document.getElementById('btn-cancel-absensi').addEventListener('click', () => closeModal('absensi-modal'));
-    document.getElementById('btn-close-absensi-detail-modal').addEventListener('click', () => closeModal('absensi-detail-modal'));
-    document.getElementById('btn-close-absensi-detail-2').addEventListener('click', () => closeModal('absensi-detail-modal'));
-
-    // SKU Modal Events (Tahap 5)
-    document.getElementById('sku-form').addEventListener('submit', handleSaveSku);
-    document.getElementById('btn-close-sku-modal').addEventListener('click', () => closeModal('sku-modal'));
-    document.getElementById('btn-cancel-sku').addEventListener('click', () => closeModal('sku-modal'));
-
-    // SKK Modal Events (Tahap 5)
-    document.getElementById('skk-form').addEventListener('submit', handleSaveSkk);
-    document.getElementById('btn-close-skk-modal').addEventListener('click', () => closeModal('skk-modal'));
-    document.getElementById('btn-cancel-skk').addEventListener('click', () => closeModal('skk-modal'));
-
-    // Program Kerja Modal Events (Ketua)
-    document.getElementById('proker-form').addEventListener('submit', handleSaveProker);
-    document.getElementById('btn-close-proker-modal').addEventListener('click', () => closeModal('proker-modal'));
-    document.getElementById('btn-cancel-proker').addEventListener('click', () => closeModal('proker-modal'));
-
-    // Tugas Modal Events (Ketua, Wakil Ketua, Sekretaris)
-    document.getElementById('tugas-form').addEventListener('submit', handleSaveTugas);
-    document.getElementById('btn-close-tugas-modal').addEventListener('click', () => closeModal('tugas-modal'));
-    document.getElementById('btn-cancel-tugas').addEventListener('click', () => closeModal('tugas-modal'));
-
-    // Keuangan Modal Events (Bendahara)
-    document.getElementById('keuangan-form').addEventListener('submit', handleSaveTransaksi);
-    document.getElementById('btn-close-keuangan-modal').addEventListener('click', () => closeModal('keuangan-modal'));
-    document.getElementById('btn-cancel-keuangan').addEventListener('click', () => closeModal('keuangan-modal'));
-    document.getElementById('kg-tipe').addEventListener('change', populateKategoriOptions);
-    document.getElementById('kg-bukti').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) {
-            alert('File bukti transaksi harus berupa gambar.');
-            e.target.value = '';
-            return;
-        }
-        compressBuktiImage(file, (dataUrl) => {
-            document.getElementById('keuangan-modal').dataset.buktiData = dataUrl;
-            document.getElementById('kg-bukti-preview-img').src = dataUrl;
-            document.getElementById('kg-bukti-preview').classList.remove('hidden');
-        });
-    });
-
-    // Lightbox Bukti Transaksi
-    document.getElementById('btn-close-bukti-viewer').addEventListener('click', () => closeModal('bukti-viewer-modal'));
-}
-
-function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-backdrop').classList.remove('show');
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-}
+    document.getElementById('btn-close-activity-modal').addEventListener('click', () => closeModal('act
