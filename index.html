@@ -533,6 +533,83 @@
         </div>
     </div>
 
+    <!-- MODAL: TAMBAH/EDIT BARANG INVENTARIS -->
+    <div id="inventaris-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-inventaris-title">Tambah Barang Inventaris</h3>
+                <button class="btn-close" id="btn-close-inventaris-modal">&times;</button>
+            </div>
+            <form id="inventaris-form">
+                <input type="hidden" id="inv-id">
+                <div class="form-group">
+                    <label for="inv-nama">Nama Barang</label>
+                    <input type="text" id="inv-nama" required placeholder="Contoh: Tenda Dome Kapasitas 4">
+                </div>
+                <div class="form-group">
+                    <label for="inv-kategori">Kategori</label>
+                    <select id="inv-kategori" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="inv-jumlah">Jumlah Total</label>
+                    <input type="number" id="inv-jumlah" min="1" step="1" required placeholder="Contoh: 5">
+                </div>
+                <div class="form-group">
+                    <label for="inv-kondisi">Kondisi</label>
+                    <select id="inv-kondisi" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="inv-lokasi">Lokasi Penyimpanan</label>
+                    <input type="text" id="inv-lokasi" placeholder="Contoh: Gudang Pramuka Rak 2">
+                </div>
+                <div class="form-group">
+                    <label for="inv-keterangan">Keterangan</label>
+                    <input type="text" id="inv-keterangan" placeholder="Catatan tambahan (opsional)">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-inventaris" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Barang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CATAT PEMINJAMAN BARANG -->
+    <div id="peminjaman-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Catat Peminjaman</h3>
+                <button class="btn-close" id="btn-close-peminjaman-modal">&times;</button>
+            </div>
+            <form id="peminjaman-form">
+                <div class="form-group">
+                    <label for="pm-item">Barang</label>
+                    <select id="pm-item" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="pm-jumlah">Jumlah Dipinjam</label>
+                    <input type="number" id="pm-jumlah" min="1" step="1" required placeholder="Contoh: 2">
+                </div>
+                <div class="form-group">
+                    <label for="pm-peminjam">Nama Peminjam</label>
+                    <input type="text" id="pm-peminjam" required placeholder="Contoh: Andi Pratama">
+                </div>
+                <div class="form-group">
+                    <label for="pm-tanggal-pinjam">Tanggal Pinjam</label>
+                    <input type="date" id="pm-tanggal-pinjam" required>
+                </div>
+                <div class="form-group">
+                    <label for="pm-estimasi-kembali">Estimasi Tanggal Kembali</label>
+                    <input type="date" id="pm-estimasi-kembali">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-peminjaman" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Peminjaman</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL LOGOUT -->
     <div id="logout-modal" class="modal hidden">
         <div class="modal-content">
