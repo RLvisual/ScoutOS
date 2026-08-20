@@ -150,8 +150,8 @@ let prestasiList = [];
 let pendidikanList = [];
 let poinList = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    initDatabase();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initDatabase();
     checkSession();
     setupEventListeners();
 });
@@ -159,13 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
 /* =========================================
    DATA LAYER — LOCAL STORAGE
 ========================================= */
-function initDatabase() {
-    const stored = localStorage.getItem('scoutos_members');
-    if (!stored) {
-        localStorage.setItem('scoutos_members', JSON.stringify(initialMembersData));
-        membersList = initialMembersData;
-    } else {
-        membersList = JSON.parse(stored);
+async function initDatabase() {
+    try {
+        membersList = await apiGet('Anggota');
+    } catch (err) {
+        alert('Gagal mengambil data anggota dari server: ' + err.message);
+        membersList = [];
     }
 
     activitiesList = loadFromStorage('scoutos_kegiatan', []);
@@ -196,8 +195,12 @@ function loadFromStorage(key, fallback) {
     }
 }
 
-function saveMembersToStorage() {
-    localStorage.setItem('scoutos_members', JSON.stringify(membersList));
+async function saveMembersToStorage() {
+    try {
+        await apiPost({ table: 'Anggota', action: 'replaceAll', data: membersList });
+    } catch (err) {
+        alert('Gagal menyimpan data anggota ke server: ' + err.message);
+    }
 }
 
 function saveActivitiesToStorage() {
@@ -390,7 +393,11 @@ function navigateTo(path, label = 'Dashboard', iconName = 'dashboard') {
     });
 
     const mainContent = document.getElementById('main-content');
-    
+    // Retrigger animasi fade-in setiap kali berpindah halaman
+    mainContent.classList.remove('page-anim');
+    void mainContent.offsetWidth;
+    mainContent.classList.add('page-anim');
+
     if (path === 'dashboard') {
         renderDashboard(mainContent);
     } else if (path === 'anggota') {
@@ -448,6 +455,14 @@ function renderAll() {
 /* =========================================
    DASHBOARD VIEW
 ========================================= */
+function sapaanWaktu() {
+    const hour = new Date().getHours();
+    if (hour < 10) return 'Selamat pagi';
+    if (hour < 15) return 'Selamat siang';
+    if (hour < 18) return 'Selamat sore';
+    return 'Selamat malam';
+}
+
 function renderDashboard(container) {
     const activeCount = membersList.filter(m => m.status === 'aktif').length;
     const now = new Date();
@@ -460,24 +475,34 @@ function renderDashboard(container) {
 
     container.innerHTML = `
         <div class="dashboard-header">
-            <h3>Selamat datang, ${currentUser.name.split(' ')[0]} 👋</h3>
-            <span class="role-badge">${roleLabels[currentUser.role]}</span>
+            <div class="dashboard-header-text">
+                <span class="dashboard-greeting-eyebrow">${sapaanWaktu()}</span>
+                <h3>Halo, ${currentUser.name.split(' ')[0]} 👋</h3>
+                <span class="role-badge">${roleLabels[currentUser.role]}</span>
+            </div>
+            <div class="dashboard-header-logo">
+                <svg viewBox="0 0 100 100" fill="currentColor"><ellipse cx="50" cy="83" rx="9" ry="6"/><path d="M50 83C50 58 50 33 50 10C57 33 57 58 50 83Z"/><path d="M50 83C50 58 50 33 50 10C43 33 43 58 50 83Z" opacity="0.85"/><path d="M50 83C38 64 26 46 17 24C30 33 43 54 50 83Z" opacity="0.9"/><path d="M50 83C62 64 74 46 83 24C70 33 57 54 50 83Z" opacity="0.9"/></svg>
+            </div>
         </div>
         
         <div class="stats-grid">
             <div class="stat-card">
+                <div class="stat-icon-badge">${getIcon('users')}</div>
                 <div class="stat-title">Total Anggota Aktif</div>
                 <div class="stat-value">${activeCount}</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon-badge">${getIcon('achievement')}</div>
                 <div class="stat-title">Tingkat SKU Tertinggi</div>
                 <div class="stat-value">Garuda</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon-badge">${getIcon('activity')}</div>
                 <div class="stat-title">Kegiatan Bulan Ini</div>
                 <div class="stat-value">${activitiesThisMonth}</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon-badge">${getIcon('dashboard')}</div>
                 <div class="stat-title">Status Sistem</div>
                 <div class="stat-value">Aktif</div>
             </div>
@@ -762,14 +787,14 @@ function updateBulkDeleteBar() {
     }
 }
 
-function handleBulkDeleteMembers() {
+async function handleBulkDeleteMembers() {
     const count = selectedMemberIds.size;
     if (count === 0) return;
 
     if (confirm(`Apakah Anda yakin ingin menghapus ${count} anggota terpilih? Tindakan ini tidak dapat dibatalkan.`)) {
         membersList = membersList.filter(m => !selectedMemberIds.has(m.id));
         selectedMemberIds.clear();
-        saveMembersToStorage();
+        await saveMembersToStorage();
         addAnnouncement(`${count} anggota telah dihapus sekaligus.`);
         filterMembersTable();
     }
@@ -814,7 +839,7 @@ function openEditMemberModal(id) {
     document.getElementById('member-modal').classList.remove('hidden');
 }
 
-function handleSaveMember(e) {
+async function handleSaveMember(e) {
     e.preventDefault();
     const id = document.getElementById('member-id').value;
     const nis = document.getElementById('m-nis').value.trim();
@@ -853,16 +878,16 @@ function handleSaveMember(e) {
         addAnnouncement(`Anggota baru "${name}" telah ditambahkan.`);
     }
 
-    saveMembersToStorage();
+    await saveMembersToStorage();
     closeModal('member-modal');
     filterMembersTable();
 }
 
-function deleteMember(id) {
+async function deleteMember(id) {
     if (confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
         const member = membersList.find(m => m.id === id);
         membersList = membersList.filter(m => m.id !== id);
-        saveMembersToStorage();
+        await saveMembersToStorage();
         if (member) addAnnouncement(`Anggota "${member.name}" telah dihapus.`);
         closeModal('member-modal');
         filterMembersTable();
