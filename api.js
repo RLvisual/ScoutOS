@@ -16,3 +16,8 @@ async function apiPost(payload) {
   if (json.error) throw new Error(json.error);
   return json;
 }
+
+async function apiUploadImage(base64Data, fileName) {
+    const result = await apiPost({ action: 'uploadImage', data: { base64: base64Data, fileName } });
+    return result.url;
+}

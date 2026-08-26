@@ -167,19 +167,95 @@ async function initDatabase() {
         membersList = [];
     }
 
-    activitiesList = loadFromStorage('scoutos_kegiatan', []);
-    absensiList = loadFromStorage('scoutos_absensi', []);
-    skuList = loadFromStorage('scoutos_sku', []);
-    skkList = loadFromStorage('scoutos_skk', []);
-    prokerList = loadFromStorage('scoutos_proker', []);
-    tugasList = loadFromStorage('scoutos_tugas', []);
+    try {
+        activitiesList = await apiGet('Kegiatan');
+    } catch (err) {
+        alert('Gagal mengambil data kegiatan dari server: ' + err.message);
+        activitiesList = [];
+    }
+  
+    try {
+        const rawAbsensi = await apiGet('Absensi');
+        absensiList = rawAbsensi.map(item => ({
+            ...item,
+            records: item.records ? JSON.parse(item.records) : []
+        }));
+    } catch (err) {
+        alert('Gagal mengambil data absensi dari server: ' + err.message);
+        absensiList = [];
+    }
+  
+    try {
+        skuList = await apiGet('SKU');
+    } catch (err) {
+        alert('Gagal mengambil data SKU dari server: ' + err.message);
+        skuList = [];
+    }
+  
+    try {
+    skkList = await apiGet('SKK');
+} catch (err) {
+    alert('Gagal mengambil data SKK dari server: ' + err.message);
+    skkList = [];
+}
+  
+    try {
+    prokerList = await apiGet('Proker');
+} catch (err) {
+    alert('Gagal mengambil data Proker dari server: ' + err.message);
+    prokerList = [];
+    }
+  
+    try {
+    tugasList = await apiGet('Tugas');
+} catch (err) {
+    alert('Gagal mengambil data Tugas dari server: ' + err.message);
+    tugasList = [];
+    }
+  
     pengumumanList = loadFromStorage('scoutos_pengumuman', []);
-    keuanganList = loadFromStorage('scoutos_keuangan', []);
-    inventarisList = loadFromStorage('scoutos_inventaris', []);
-    peminjamanList = loadFromStorage('scoutos_peminjaman', []);
-    prestasiList = loadFromStorage('scoutos_prestasi', []);
-    pendidikanList = loadFromStorage('scoutos_pendidikan', []);
-    poinList = loadFromStorage('scoutos_poin', []);
+  
+    try {
+    keuanganList = await apiGet('Keuangan');
+} catch (err) {
+    alert('Gagal mengambil data Keuangan dari server: ' + err.message);
+    keuanganList = [];
+    }
+  
+    try {
+    inventarisList = await apiGet('Inventaris');
+} catch (err) {
+    alert('Gagal mengambil data Inventaris dari server: ' + err.message);
+    inventarisList = [];
+    }
+  
+    try {
+    peminjamanList = await apiGet('Peminjaman');
+} catch (err) {
+    alert('Gagal mengambil data Peminjaman dari server: ' + err.message);
+    peminjamanList = [];
+    }
+  
+    try {
+    prestasiList = await apiGet('Prestasi');
+} catch (err) {
+    alert('Gagal mengambil data Prestasi dari server: ' + err.message);
+    prestasiList = [];
+    }
+  
+    try {
+    pendidikanList = await apiGet('Pendidikan');
+} catch (err) {
+    alert('Gagal mengambil data pendidikan dari server: ' + err.message);
+    pendidikanList = [];
+    }
+  
+    try {
+    poinList = await apiGet('Poin');
+} catch (err) {
+    alert('Gagal mengambil data poin dari server: ' + err.message);
+    poinList = [];
+}
 }
 
 function loadFromStorage(key, fallback) {
@@ -203,56 +279,108 @@ async function saveMembersToStorage() {
     }
 }
 
-function saveActivitiesToStorage() {
-    localStorage.setItem('scoutos_kegiatan', JSON.stringify(activitiesList));
+async function saveActivitiesToStorage() {
+    try {
+        await apiPost({ table: 'Kegiatan', action: 'replaceAll', data: activitiesList });
+    } catch (err) {
+        alert('Gagal menyimpan data kegiatan ke server: ' + err.message);
+    }
 }
 
-function saveAbsensiToStorage() {
-    localStorage.setItem('scoutos_absensi', JSON.stringify(absensiList));
+async function saveAbsensiToStorage() {
+    try {
+        const dataToSave = absensiList.map(item => ({
+            ...item,
+            records: JSON.stringify(item.records || [])
+        }));
+        await apiPost({ table: 'Absensi', action: 'replaceAll', data: dataToSave });
+    } catch (err) {
+        alert('Gagal menyimpan data absensi ke server: ' + err.message);
+    }
 }
 
-function saveSkuToStorage() {
-    localStorage.setItem('scoutos_sku', JSON.stringify(skuList));
+async function saveSkuToStorage() {
+    try {
+        await apiPost({ table: 'SKU', action: 'replaceAll', data: skuList });
+    } catch (err) {
+        alert('Gagal menyimpan data SKU ke server: ' + err.message);
+    }
 }
 
-function saveSkkToStorage() {
-    localStorage.setItem('scoutos_skk', JSON.stringify(skkList));
+async function saveSkkToStorage() {
+    try {
+        await apiPost({ table: 'SKK', action: 'replaceAll', data: skkList });
+    } catch (err) {
+        alert('Gagal menyimpan data SKK ke server: ' + err.message);
+    }
 }
 
-function saveProkerToStorage() {
-    localStorage.setItem('scoutos_proker', JSON.stringify(prokerList));
+async function saveProkerToStorage() {
+    try {
+        await apiPost({ table: 'Proker', action: 'replaceAll', data: prokerList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function saveTugasToStorage() {
-    localStorage.setItem('scoutos_tugas', JSON.stringify(tugasList));
+async function saveTugasToStorage() {
+    try {
+        await apiPost({ table: 'Tugas', action: 'replaceAll', data: tugasList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
 function savePengumumanToStorage() {
     localStorage.setItem('scoutos_pengumuman', JSON.stringify(pengumumanList));
 }
 
-function saveKeuanganToStorage() {
-    localStorage.setItem('scoutos_keuangan', JSON.stringify(keuanganList));
+async function saveKeuanganToStorage() {
+    try {
+        await apiPost({ table: 'Keuangan', action: 'replaceAll', data: keuanganList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function saveInventarisToStorage() {
-    localStorage.setItem('scoutos_inventaris', JSON.stringify(inventarisList));
+async function saveInventarisToStorage() {
+    try {
+        await apiPost({ table: 'Inventaris', action: 'replaceAll', data: inventarisList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function savePeminjamanToStorage() {
-    localStorage.setItem('scoutos_peminjaman', JSON.stringify(peminjamanList));
+async function savePeminjamanToStorage() {
+    try {
+        await apiPost({ table: 'Peminjaman', action: 'replaceAll', data: peminjamanList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function savePrestasiToStorage() {
-    localStorage.setItem('scoutos_prestasi', JSON.stringify(prestasiList));
+async function savePrestasiToStorage() {
+    try {
+        await apiPost({ table: 'Prestasi', action: 'replaceAll', data: prestasiList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function savePendidikanToStorage() {
-    localStorage.setItem('scoutos_pendidikan', JSON.stringify(pendidikanList));
+async function savePendidikanToStorage() {
+    try {
+        await apiPost({ table: 'Pendidikan', action: 'replaceAll', data: pendidikanList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
-function savePoinToStorage() {
-    localStorage.setItem('scoutos_poin', JSON.stringify(poinList));
+async function savePoinToStorage() {
+    try {
+        await apiPost({ table: 'Poin', action: 'replaceAll', data: poinList });
+    } catch (err) {
+        alert('Gagal menyimpan data ke server: ' + err.message);
+    }
 }
 
 /* Menambahkan satu entri ke feed Pengumuman setiap kali ada perubahan data
@@ -363,6 +491,29 @@ function renderHeader() {
     document.getElementById('header-name').textContent = currentUser.name;
     document.getElementById('header-role').textContent = roleString;
     document.getElementById('header-avatar').textContent = avatarLetter;
+
+    const profileCard = document.getElementById('header-profile-card');
+    profileCard.innerHTML = `
+        <div class="avatar">${avatarLetter}</div>
+        <h4>${currentUser.name}</h4>
+        <span class="role-badge" style="background-color: var(--primary-soft); color: var(--primary-dark); border-color: var(--border);">${roleString}</span>
+        <div class="profile-card-field"><span>Username</span><strong>${currentUser.username}</strong></div>
+        <div class="profile-card-field"><span>Kelas</span><strong>${currentUser.class_name || '-'}</strong></div>
+        <div class="profile-card-field"><span>No. HP</span><strong>${currentUser.phone || '-'}</strong></div>
+        <div class="profile-card-field"><span>Tingkat SKU</span><strong>${currentUser.sku_level || '-'}</strong></div>
+    `;
+
+    const profileWrap = document.getElementById('header-profile');
+    if (!profileWrap.dataset.bound) {
+        profileWrap.dataset.bound = 'true';
+        profileWrap.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('header-profile-card').classList.toggle('hidden');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('header-profile-card').classList.add('hidden');
+        });
+    }
 }
 
 function renderSidebar() {
@@ -463,73 +614,133 @@ function sapaanWaktu() {
     return 'Selamat malam';
 }
 
+// Total butir SKU yang dijadikan acuan 100% (perkiraan jumlah poin per tingkatan SKU)
+const TOTAL_SKU_POIN = 100;
+
+function computeSkuPercent(memberId) {
+    const done = skuList.filter(s => s.member_id === memberId && s.status === 'Selesai').length;
+    return Math.min(100, Math.round((done / TOTAL_SKU_POIN) * 100));
+}
+
+function computeSkkCount(memberId) {
+    return skkList.filter(s => s.member_id === memberId && s.status === 'Selesai').length;
+}
+
+// Jumlah anggota terdata, tidak termasuk super_admin dan pembina
+function computeJumlahAnggotaTerdata() {
+    return membersList.filter(m => m.status === 'aktif' && !['super_admin', 'pembina'].includes(m.primary_role)).length;
+}
+
+// Ambil pengumuman terbaru khusus terkait pendidikan, kegiatan, atau absensi
+function getApaYangBaru() {
+    const keywords = /kegiatan|absensi|sesi|pendidikan|materi/i;
+    return pengumumanList.filter(p => keywords.test(p.text)).slice(0, 6);
+}
+
+function toggleApaBaru() {
+    const list = document.getElementById('apa-baru-list');
+    const btn = document.getElementById('apa-baru-toggle');
+    list.classList.toggle('hidden');
+    btn.classList.toggle('open');
+}
+
+function handleDashboardSearch(e) {
+    const q = e.target.value.trim().toLowerCase();
+    const resultsBox = document.getElementById('dashboard-search-results');
+    if (!q) {
+        resultsBox.classList.add('hidden');
+        resultsBox.innerHTML = '';
+        return;
+    }
+
+    const memberHits = membersList.filter(m => m.name.toLowerCase().includes(q)).slice(0, 4)
+        .map(m => ({ label: 'Anggota', title: m.name, path: 'anggota' }));
+    const activityHits = activitiesList.filter(a => (a.title || '').toLowerCase().includes(q)).slice(0, 4)
+        .map(a => ({ label: 'Kegiatan', title: a.title, path: 'kegiatan' }));
+    const announceHits = pengumumanList.filter(p => (p.text || '').toLowerCase().includes(q)).slice(0, 4)
+        .map(p => ({ label: 'Pengumuman', title: p.text, path: 'pengumuman' }));
+
+    const hits = [...memberHits, ...activityHits, ...announceHits];
+
+    if (hits.length === 0) {
+        resultsBox.innerHTML = `<div class="search-empty">Tidak ada hasil untuk "${e.target.value}"</div>`;
+    } else {
+        resultsBox.innerHTML = hits.map(h => `
+            <div class="search-result-item" data-path="${h.path}">
+                <span class="sr-label">${h.label}</span>
+                <span class="sr-title">${h.title}</span>
+            </div>
+        `).join('');
+        resultsBox.querySelectorAll('.search-result-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const path = el.dataset.path;
+                const navItem = (navigationConfig[currentUser.role] || []).find(n => n.id === path);
+                if (navItem) navigateTo(navItem.id, navItem.label, navItem.icon);
+                resultsBox.classList.add('hidden');
+                document.getElementById('dashboard-search').value = '';
+            });
+        });
+    }
+    resultsBox.classList.remove('hidden');
+}
+
 function renderDashboard(container) {
-    const activeCount = membersList.filter(m => m.status === 'aktif').length;
-    const now = new Date();
-    const activitiesThisMonth = activitiesList.filter(a => {
-        if (!a.date) return false;
-        const d = new Date(a.date);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-    const recentActivities = [...activitiesList].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    const skuPercent = computeSkuPercent(currentUser.id);
+    const skkCount = computeSkkCount(currentUser.id);
+    const jumlahAnggota = computeJumlahAnggotaTerdata();
+    const apaBaru = getApaYangBaru();
 
     container.innerHTML = `
         <div class="dashboard-header">
             <div class="dashboard-header-text">
                 <span class="dashboard-greeting-eyebrow">${sapaanWaktu()}</span>
-                <h3>Halo, ${currentUser.name.split(' ')[0]} 👋</h3>
+                <h3>Halo, ${currentUser.name} 👋</h3>
                 <span class="role-badge">${roleLabels[currentUser.role]}</span>
             </div>
             <div class="dashboard-header-logo">
                 <svg viewBox="0 0 100 100" fill="currentColor"><ellipse cx="50" cy="83" rx="9" ry="6"/><path d="M50 83C50 58 50 33 50 10C57 33 57 58 50 83Z"/><path d="M50 83C50 58 50 33 50 10C43 33 43 58 50 83Z" opacity="0.85"/><path d="M50 83C38 64 26 46 17 24C30 33 43 54 50 83Z" opacity="0.9"/><path d="M50 83C62 64 74 46 83 24C70 33 57 54 50 83Z" opacity="0.9"/></svg>
             </div>
         </div>
-        
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon-badge">${getIcon('users')}</div>
-                <div class="stat-title">Total Anggota Aktif</div>
-                <div class="stat-value">${activeCount}</div>
+
+        <div class="dashboard-search-wrap">
+            <input type="text" id="dashboard-search" class="dashboard-search" placeholder="Apa Yang Kamu Cari??" autocomplete="off">
+            <div id="dashboard-search-results" class="search-results hidden"></div>
+        </div>
+
+        <div class="sku-skk-card">
+            <div class="sku-skk-col">
+                <div class="sku-skk-label">SKU</div>
+                <div class="sku-skk-value">${skuPercent}%</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon-badge">${getIcon('achievement')}</div>
-                <div class="stat-title">Tingkat SKU Tertinggi</div>
-                <div class="stat-value">Garuda</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon-badge">${getIcon('activity')}</div>
-                <div class="stat-title">Kegiatan Bulan Ini</div>
-                <div class="stat-value">${activitiesThisMonth}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon-badge">${getIcon('dashboard')}</div>
-                <div class="stat-title">Status Sistem</div>
-                <div class="stat-value">Aktif</div>
+            <div class="sku-skk-col">
+                <div class="sku-skk-label">SKK</div>
+                <div class="sku-skk-value">${skkCount}</div>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-header"><h4>Aktivitas Terbaru Organisasi</h4></div>
-            <div class="card-body">
-                ${recentActivities.length === 0 ? `
-                    <div class="empty-list">Belum ada catatan aktivitas baru hari ini.</div>
-                ` : `
-                    <div class="recent-activity-list">
-                        ${recentActivities.map(a => `
-                            <div class="recent-activity-item">
-                                <div class="recent-activity-dot"></div>
-                                <div>
-                                    <strong>${a.title}</strong>
-                                    <span>${formatTanggal(a.date)} • ${a.location || 'Lokasi belum ditentukan'}</span>
-                                </div>
-                                <span class="status-badge status-aktif">${a.status || 'Direncanakan'}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `}
-            </div>
+
+        <div class="jumlah-anggota-bar">
+            <div class="jumlah-anggota-label">Jumlah Anggota :</div>
+            <div class="jumlah-anggota-value">${jumlahAnggota}</div>
+        </div>
+
+        <button id="apa-baru-toggle" class="apa-baru-toggle">
+            Apa Yang Baru
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div id="apa-baru-list" class="apa-baru-list hidden">
+            ${apaBaru.length === 0 ? `
+                <div class="apa-baru-item"><span class="apa-baru-text">Belum ada info baru seputar pendidikan, kegiatan, atau absensi.</span></div>
+            ` : apaBaru.map(p => `
+                <div class="apa-baru-item">
+                    <div class="apa-baru-dot"></div>
+                    <div class="apa-baru-text">${p.text}<span class="apa-baru-time">${formatWaktuLengkap(p.timestamp)}</span></div>
+                </div>
+            `).join('')}
         </div>
     `;
+
+    document.getElementById('dashboard-search').addEventListener('input', handleDashboardSearch);
+    document.getElementById('apa-baru-toggle').addEventListener('click', toggleApaBaru);
 }
 
 function formatTanggal(dateStr) {
@@ -1071,7 +1282,7 @@ function openEditActivityModal(id) {
     document.getElementById('activity-modal').classList.remove('hidden');
 }
 
-function handleSaveActivity(e) {
+async function handleSaveActivity(e) {
     e.preventDefault();
     const id = document.getElementById('a-id').value;
     const title = document.getElementById('a-title').value.trim();
@@ -1092,16 +1303,16 @@ function handleSaveActivity(e) {
         addAnnouncement(`Kegiatan baru "${title}" telah dibuat.`);
     }
 
-    saveActivitiesToStorage();
+    await saveActivitiesToStorage();
     closeModal('activity-modal');
     renderKegiatan(document.getElementById('main-content'));
 }
 
-function deleteActivity(id) {
+async function deleteActivity(id) {
     if (confirm('Hapus kegiatan ini?')) {
         const activity = activitiesList.find(a => a.id === id);
         activitiesList = activitiesList.filter(a => a.id !== id);
-        saveActivitiesToStorage();
+        await saveActivitiesToStorage();
         if (activity) addAnnouncement(`Kegiatan "${activity.title}" telah dihapus.`);
         renderKegiatan(document.getElementById('main-content'));
     }
@@ -1180,10 +1391,10 @@ function countAttendance(records) {
     return counts;
 }
 
-function deleteAbsensiSesi(id) {
+async function deleteAbsensiSesi(id) {
     if (confirm('Hapus sesi absensi ini beserta seluruh data kehadirannya?')) {
         absensiList = absensiList.filter(s => s.id !== id);
-        saveAbsensiToStorage();
+        await saveAbsensiToStorage();
         renderAbsensi(document.getElementById('main-content'));
     }
 }
@@ -1194,7 +1405,7 @@ function attendanceBadge(status) {
     return `<span class="status-badge ${cls}">${status}</span>`;
 }
 
-function handleSaveAbsensiSesi(e) {
+async function handleSaveAbsensiSesi(e) {
     e.preventDefault();
     const title = document.getElementById('ab-title').value.trim();
     const date = document.getElementById('ab-date').value;
@@ -1204,7 +1415,7 @@ function handleSaveAbsensiSesi(e) {
         .map(m => ({ member_id: m.id, status: 'hadir' }));
 
     absensiList.unshift({ id: 'abs_' + Date.now(), title, date, records });
-    saveAbsensiToStorage();
+    await saveAbsensiToStorage();
     addAnnouncement(`Sesi absensi "${title}" telah dibuat.`);
     closeModal('absensi-modal');
     renderAbsensi(document.getElementById('main-content'));
@@ -1244,12 +1455,12 @@ function openAbsensiDetail(sesiId) {
     document.getElementById('absensi-detail-modal').classList.remove('hidden');
 }
 
-function updateAttendanceStatus(sesiId, memberId, newStatus) {
+async function updateAttendanceStatus(sesiId, memberId, newStatus) {
     const sesi = absensiList.find(s => s.id === sesiId);
     if (!sesi) return;
     const rec = (sesi.records || []).find(r => r.member_id === memberId);
     if (rec) rec.status = newStatus;
-    saveAbsensiToStorage();
+    await saveAbsensiToStorage();
     renderAbsensi(document.getElementById('main-content'));
 }
 
@@ -1330,22 +1541,22 @@ function memberName(id) {
     return m ? m.name : 'Anggota tidak ditemukan';
 }
 
-function handleSaveSku(e) {
+async function handleSaveSku(e) {
     e.preventDefault();
     const member_id = document.getElementById('sku-member').value;
     const item = document.getElementById('sku-item').value.trim();
     const status = document.getElementById('sku-status').value;
     skuList.unshift({ id: 'sku_' + Date.now(), member_id, item, status });
-    saveSkuToStorage();
+    await saveSkuToStorage();
     addAnnouncement(`Poin SKU baru ditambahkan untuk ${memberName(member_id)}.`);
     closeModal('sku-modal');
     renderSkuSkk(document.getElementById('main-content'));
 }
 
-function deleteSku(id) {
+async function deleteSku(id) {
     if (confirm('Hapus catatan SKU ini?')) {
         skuList = skuList.filter(s => s.id !== id);
-        saveSkuToStorage();
+        await saveSkuToStorage();
         renderSkuSkk(document.getElementById('main-content'));
     }
 }
@@ -1756,22 +1967,31 @@ function compressBuktiImage(file, callback) {
     reader.readAsDataURL(file);
 }
 
-function handleSaveTransaksi(e) {
+async function handleSaveTransaksi(e) {
     e.preventDefault();
     const tipe = document.getElementById('kg-tipe').value;
     const kategori = document.getElementById('kg-kategori').value;
     const jumlah = Number(document.getElementById('kg-jumlah').value);
     const tanggal = document.getElementById('kg-tanggal').value;
     const keterangan = document.getElementById('kg-keterangan').value.trim();
-    const bukti = document.getElementById('keuangan-modal').dataset.buktiData || '';
+    let bukti = document.getElementById('keuangan-modal').dataset.buktiData || '';
 
     if (!jumlah || jumlah <= 0) {
         alert('Jumlah transaksi harus lebih dari 0.');
         return;
     }
 
+    if (bukti.startsWith('data:image')) {
+        try {
+            bukti = await apiUploadImage(bukti, 'bukti_' + Date.now() + '.jpg');
+        } catch (err) {
+            alert('Gagal upload foto bukti: ' + err.message);
+            return;
+        }
+    }
+
     keuanganList.unshift({ id: 'kg_' + Date.now(), tipe, kategori, jumlah, tanggal, keterangan, bukti });
-    saveKeuanganToStorage();
+    await saveKeuanganToStorage();
     // Jumlah nominal sengaja tidak dicantumkan di feed Pengumuman (yang bisa
     // dilihat semua role) demi menjaga privasi keuangan organisasi.
     addAnnouncement(`Transaksi kas ${tipe === 'masuk' ? 'masuk' : 'keluar'} kategori "${kategori}" telah dicatat oleh Bendahara.`);
@@ -2159,7 +2379,7 @@ function openEditPrestasiModal(id) {
     document.getElementById('prestasi-modal').classList.remove('hidden');
 }
 
-function handleSavePrestasi(e) {
+async function handleSavePrestasi(e) {
     e.preventDefault();
     const id = document.getElementById('pr-id').value;
     const judul = document.getElementById('pr-judul').value.trim();
@@ -2167,7 +2387,16 @@ function handleSavePrestasi(e) {
     const tanggal = document.getElementById('pr-tanggal').value;
     const deskripsi = document.getElementById('pr-deskripsi').value.trim();
     const artikel = document.getElementById('pr-artikel').value.trim();
-    const gambar = document.getElementById('prestasi-modal').dataset.gambarData || '';
+    let gambar = document.getElementById('prestasi-modal').dataset.gambarData || '';
+
+    if (gambar.startsWith('data:image')) {
+        try {
+            gambar = await apiUploadImage(gambar, 'prestasi_' + Date.now() + '.jpg');
+        } catch (err) {
+            alert('Gagal upload foto prestasi: ' + err.message);
+            return;
+        }
+    }
 
     if (id) {
         const index = prestasiList.findIndex(p => p.id === id);
@@ -2180,7 +2409,7 @@ function handleSavePrestasi(e) {
         addAnnouncement(`Berita prestasi baru "${judul}" telah dipublikasikan.`);
     }
 
-    savePrestasiToStorage();
+    await savePrestasiToStorage();
     closeModal('prestasi-modal');
     renderPrestasi(document.getElementById('main-content'));
 }

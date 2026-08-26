@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScoutOS - Sistem Manajemen Pramuka</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#55330f">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2315803d'/%3E%3Cg fill='white'%3E%3Cellipse cx='50' cy='83' rx='9' ry='6'/%3E%3Cpath d='M50 83C50 58 50 33 50 10C57 33 57 58 50 83Z'/%3E%3Cpath d='M50 83C50 58 50 33 50 10C43 33 43 58 50 83Z' opacity='0.85'/%3E%3Cpath d='M50 83C38 64 26 46 17 24C30 33 43 54 50 83Z' opacity='0.9'/%3E%3Cpath d='M50 83C62 64 74 46 83 24C70 33 57 54 50 83Z' opacity='0.9'/%3E%3C/g%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237c4a1e'/%3E%3Cg fill='white'%3E%3Cellipse cx='50' cy='83' rx='9' ry='6'/%3E%3Cpath d='M50 83C50 58 50 33 50 10C57 33 57 58 50 83Z'/%3E%3Cpath d='M50 83C50 58 50 33 50 10C43 33 43 58 50 83Z' opacity='0.85'/%3E%3Cpath d='M50 83C38 64 26 46 17 24C30 33 43 54 50 83Z' opacity='0.9'/%3E%3Cpath d='M50 83C62 64 74 46 83 24C70 33 57 54 50 83Z' opacity='0.9'/%3E%3C/g%3E%3C/svg%3E">
 </head>
-<>
+<body>
 
     <!-- VIEW: LOGIN -->
     <div id="login-view" class="view hidden">
@@ -110,12 +111,13 @@
                     <h2 id="page-title">Dashboard</h2>
                 </div>
                 <div class="header-right">
-                    <div class="header-profile">
+                    <div class="header-profile" id="header-profile">
                         <div class="header-user-info desktop-only">
                             <strong id="header-name">Name</strong>
                             <span id="header-role">Role</span>
                         </div>
                         <div class="avatar" id="header-avatar">A</div>
+                        <div class="header-profile-card hidden" id="header-profile-card"></div>
                     </div>
                 </div>
             </header>
@@ -751,7 +753,12 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
+    <script>
+window.onerror = function(msg, url, line) {
+  alert('ERROR: ' + msg + ' (baris ' + line + ')');
+};
+</script>
+<script src="api.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
