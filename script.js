@@ -18,6 +18,11 @@ const svgIcons = {
     profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+    external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+    quiz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    chevronDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+    chevronUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>',
     default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>'
 };
 
@@ -2446,6 +2451,8 @@ function openPrestasiDetail(id) {
 /* =========================================
    PENDIDIKAN — MATERI & PELATIHAN KEPRAMUKAAN
 ========================================= */
+const PENDIDIKAN_DESC_LIMIT = 150; // batas karakter sebelum artikel dipotong
+
 function renderPendidikan(container) {
     const isManager = canManagePendidikan();
     const sorted = [...pendidikanList].sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0));
@@ -2464,12 +2471,20 @@ function renderPendidikan(container) {
             <div class="card"><div class="card-body"><div class="empty-list">Belum ada materi atau pelatihan yang ditambahkan.</div></div></div>
         ` : `
             <div class="pendidikan-list">
-                ${sorted.map(p => `
+                ${sorted.map(p => {
+                    const deskripsi = p.deskripsi || '';
+                    const isLong = deskripsi.length > PENDIDIKAN_DESC_LIMIT;
+                    const potongan = isLong ? deskripsi.slice(0, PENDIDIKAN_DESC_LIMIT).trim() + '…' : deskripsi;
+                    const jumlahSoal = (p.kuis || []).length;
+                    const skorTersimpan = getSkorKuisTersimpan(p.id);
+
+                    return `
                     <div class="card pendidikan-item">
                         <div class="card-body">
                             <div class="pendidikan-item-header">
                                 <div>
                                     <span class="badge-future">${p.jenis}</span>
+                                    ${jumlahSoal > 0 ? `<span class="badge-kuis">${getIcon('quiz')} Ada Kuis</span>` : ''}
                                     <h4 style="margin-top:0.5rem;">${p.judul}</h4>
                                 </div>
                                 ${isManager ? `
@@ -2479,21 +2494,72 @@ function renderPendidikan(container) {
                                     </div>
                                 ` : ''}
                             </div>
-                            ${p.deskripsi ? `<p class="pendidikan-item-desc">${p.deskripsi.replace(/\n/g, '<br>')}</p>` : ''}
+
+                            ${deskripsi ? `
+                                <p class="pendidikan-item-desc" id="desc-${p.id}">${(isLong ? potongan : deskripsi).replace(/\n/g, '<br>')}</p>
+                                ${isLong ? `
+                                    <button type="button" class="btn-baca-selengkapnya" id="btn-baca-${p.id}" onclick="toggleDeskripsiPendidikan('${p.id}')">
+                                        Baca Selengkapnya ${getIcon('chevronDown')}
+                                    </button>
+                                ` : ''}
+                            ` : ''}
+
                             <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.75rem; color:var(--text-muted); margin-top:0.6rem;">
                                 ${p.tanggal ? `<span>${formatTanggal(p.tanggal)}</span>` : ''}
                                 ${p.pengajar ? `<span>Narasumber: ${p.pengajar}</span>` : ''}
-                                ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:600;">Buka Materi &rarr;</a>` : ''}
                             </div>
+
+                            <div class="pendidikan-item-actions">
+                                ${p.link ? `
+                                    <a href="${p.link}" target="_blank" rel="noopener" class="btn-buka-materi">
+                                        ${getIcon('external')} Buka Materi
+                                    </a>
+                                ` : ''}
+                                ${jumlahSoal > 0 ? `
+                                    <button type="button" class="btn-kuis" onclick="openKuisModal('${p.id}')">
+                                        ${getIcon('quiz')} Kerjakan Kuis (${jumlahSoal} soal)
+                                    </button>
+                                ` : ''}
+                                ${isManager ? `
+                                    <button type="button" class="btn-kelola-kuis" onclick="openKuisBuilderModal('${p.id}')">
+                                        ${getIcon('settings')} Kelola Kuis${jumlahSoal > 0 ? ` (${jumlahSoal})` : ''}
+                                    </button>
+                                ` : ''}
+                            </div>
+
+                            ${skorTersimpan ? `
+                                <div class="kuis-skor-badge">Skor terbaikmu: <strong>${skorTersimpan.skor}/${skorTersimpan.total}</strong></div>
+                            ` : ''}
                         </div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
         `}
     `;
 
     const btnOpen = document.getElementById('btn-open-pendidikan-modal');
     if (btnOpen) btnOpen.addEventListener('click', openAddPendidikanModal);
+}
+
+function toggleDeskripsiPendidikan(id) {
+    const el = document.getElementById('desc-' + id);
+    const btn = document.getElementById('btn-baca-' + id);
+    if (!el || !btn) return;
+    const p = pendidikanList.find(x => x.id === id);
+    const deskripsi = (p.deskripsi || '').replace(/\n/g, '<br>');
+    const sedangDipotong = btn.dataset.expanded !== 'true';
+
+    if (sedangDipotong) {
+        el.innerHTML = deskripsi;
+        btn.innerHTML = `Sembunyikan ${getIcon('chevronUp')}`;
+        btn.dataset.expanded = 'true';
+    } else {
+        const potongan = (p.deskripsi || '').slice(0, PENDIDIKAN_DESC_LIMIT).trim() + '…';
+        el.innerHTML = potongan.replace(/\n/g, '<br>');
+        btn.innerHTML = `Baca Selengkapnya ${getIcon('chevronDown')}`;
+        btn.dataset.expanded = 'false';
+    }
 }
 
 function openAddPendidikanModal() {
@@ -2552,6 +2618,187 @@ function deletePendidikan(id) {
         if (p) addAnnouncement(`Materi pendidikan "${p.judul}" telah dihapus.`);
         renderPendidikan(document.getElementById('main-content'));
     }
+}
+
+/* =========================================
+   KUIS PENDIDIKAN — PER MATERI
+   Soal kuis disimpan menempel di masing-masing
+   materi (field p.kuis), ikut tersimpan lewat
+   savePendidikanToStorage() yang sudah ada.
+   Skor pengerjaan disimpan di localStorage per
+   pengguna supaya tidak perlu ubah backend Sheets.
+========================================= */
+let kuisBuilderMateriId = null; // materi yang sedang dikelola soalnya
+let kuisAktifMateriId = null;   // materi yang sedang dikerjakan kuisnya
+
+function kuisSkorStorageKey(materiId) {
+    return `scoutos_kuis_skor_${currentUser.id}_${materiId}`;
+}
+
+function getSkorKuisTersimpan(materiId) {
+    try {
+        const raw = localStorage.getItem(kuisSkorStorageKey(materiId));
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function simpanSkorKuis(materiId, skor, total) {
+    const sebelumnya = getSkorKuisTersimpan(materiId);
+    // hanya simpan kalau ini skor pertama atau lebih baik dari sebelumnya
+    if (!sebelumnya || skor > sebelumnya.skor) {
+        localStorage.setItem(kuisSkorStorageKey(materiId), JSON.stringify({ skor, total, tanggal: new Date().toISOString() }));
+    }
+}
+
+/* ---------- KELOLA SOAL (khusus manager) ---------- */
+function openKuisBuilderModal(materiId) {
+    kuisBuilderMateriId = materiId;
+    renderKuisBuilderBody();
+    document.getElementById('kuis-builder-modal').classList.remove('hidden');
+}
+
+function renderKuisBuilderBody() {
+    const p = pendidikanList.find(x => x.id === kuisBuilderMateriId);
+    if (!p) return;
+    if (!p.kuis) p.kuis = [];
+
+    document.getElementById('kuis-builder-title').textContent = `Kelola Kuis — ${p.judul}`;
+    document.getElementById('kuis-builder-body').innerHTML = `
+        ${p.kuis.length === 0 ? `
+            <div class="empty-list" style="margin-bottom:1rem;">Belum ada soal untuk materi ini.</div>
+        ` : `
+            <div class="kuis-existing-list">
+                ${p.kuis.map((q, i) => `
+                    <div class="kuis-existing-item">
+                        <div>
+                            <strong>${i + 1}. ${q.soal}</strong>
+                            <ul class="kuis-existing-opsi">
+                                ${q.opsi.map((op, oi) => `<li class="${oi === q.jawaban ? 'kuis-opsi-benar' : ''}">${op}${oi === q.jawaban ? ` ${getIcon('quiz')}` : ''}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <button type="button" class="btn-danger btn-sm" onclick="hapusSoalKuis('${q.id}')">${getIcon('trash')}</button>
+                    </div>
+                `).join('')}
+            </div>
+        `}
+
+        <form id="kuis-soal-form" class="kuis-soal-form">
+            <h4 style="font-size:0.95rem; margin-bottom:0.75rem;">Tambah Soal Baru</h4>
+            <div class="form-group">
+                <label for="ks-soal">Pertanyaan</label>
+                <textarea id="ks-soal" rows="2" required placeholder="Tulis pertanyaan kuis"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Pilihan Jawaban (pilih radio di jawaban yang benar)</label>
+                ${[0, 1, 2, 3].map(i => `
+                    <div class="kuis-opsi-input-row">
+                        <input type="radio" name="ks-jawaban" value="${i}" ${i === 0 ? 'checked' : ''} required>
+                        <input type="text" id="ks-opsi-${i}" placeholder="Opsi ${i + 1}" required>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary">${getIcon('plus')} Tambah Soal</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('kuis-soal-form').addEventListener('submit', handleTambahSoalKuis);
+}
+
+function handleTambahSoalKuis(e) {
+    e.preventDefault();
+    const p = pendidikanList.find(x => x.id === kuisBuilderMateriId);
+    if (!p) return;
+
+    const soal = document.getElementById('ks-soal').value.trim();
+    const opsi = [0, 1, 2, 3].map(i => document.getElementById(`ks-opsi-${i}`).value.trim());
+    const jawaban = Number(document.querySelector('input[name="ks-jawaban"]:checked').value);
+
+    if (!p.kuis) p.kuis = [];
+    p.kuis.push({ id: 'kz_' + Date.now(), soal, opsi, jawaban });
+
+    savePendidikanToStorage();
+    renderKuisBuilderBody();
+    renderPendidikan(document.getElementById('main-content'));
+}
+
+function hapusSoalKuis(soalId) {
+    const p = pendidikanList.find(x => x.id === kuisBuilderMateriId);
+    if (!p) return;
+    if (!confirm('Hapus soal ini?')) return;
+
+    p.kuis = (p.kuis || []).filter(q => q.id !== soalId);
+    savePendidikanToStorage();
+    renderKuisBuilderBody();
+    renderPendidikan(document.getElementById('main-content'));
+}
+
+/* ---------- KERJAKAN KUIS (semua anggota) ---------- */
+function openKuisModal(materiId) {
+    kuisAktifMateriId = materiId;
+    const p = pendidikanList.find(x => x.id === materiId);
+    if (!p || !p.kuis || p.kuis.length === 0) return;
+
+    const skorTersimpan = getSkorKuisTersimpan(materiId);
+
+    document.getElementById('kuis-title').textContent = `Kuis — ${p.judul}`;
+    document.getElementById('kuis-body').innerHTML = `
+        ${skorTersimpan ? `<div class="kuis-skor-badge" style="margin-bottom:1rem;">Skor terbaikmu sebelumnya: <strong>${skorTersimpan.skor}/${skorTersimpan.total}</strong></div>` : ''}
+        <form id="kuis-jawab-form">
+            ${p.kuis.map((q, i) => `
+                <div class="kuis-question-block">
+                    <p class="kuis-question-text">${i + 1}. ${q.soal}</p>
+                    <div class="kuis-opsi-list">
+                        ${q.opsi.map((op, oi) => `
+                            <label class="kuis-opsi-item">
+                                <input type="radio" name="soal-${q.id}" value="${oi}" required>
+                                <span>${op}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary">Selesai & Lihat Skor</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('kuis-jawab-form').addEventListener('submit', handleSubmitKuis);
+    document.getElementById('kuis-modal').classList.remove('hidden');
+}
+
+function handleSubmitKuis(e) {
+    e.preventDefault();
+    const p = pendidikanList.find(x => x.id === kuisAktifMateriId);
+    if (!p) return;
+
+    let benar = 0;
+    p.kuis.forEach(q => {
+        const dipilih = document.querySelector(`input[name="soal-${q.id}"]:checked`);
+        if (dipilih && Number(dipilih.value) === q.jawaban) benar++;
+    });
+    const total = p.kuis.length;
+
+    simpanSkorKuis(p.id, benar, total);
+    addAnnouncement(`${currentUser.name} menyelesaikan kuis "${p.judul}" dengan skor ${benar}/${total}.`);
+
+    const persen = Math.round((benar / total) * 100);
+    document.getElementById('kuis-body').innerHTML = `
+        <div class="kuis-hasil">
+            <div class="kuis-hasil-skor">${benar}/${total}</div>
+            <p class="kuis-hasil-keterangan">${persen >= 80 ? 'Mantap, kamu sudah paham materi ini! 🎉' : persen >= 50 ? 'Lumayan, coba baca ulang materinya ya.' : 'Yuk baca lagi materinya biar makin paham.'}</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('kuis-modal')">Tutup</button>
+                <button type="button" class="btn-primary" onclick="openKuisModal('${p.id}')">Coba Lagi</button>
+            </div>
+        </div>
+    `;
+
+    renderPendidikan(document.getElementById('main-content'));
 }
 
 /* =========================================
@@ -2883,6 +3130,10 @@ function setupEventListeners() {
     document.getElementById('pendidikan-form').addEventListener('submit', handleSavePendidikan);
     document.getElementById('btn-close-pendidikan-modal').addEventListener('click', () => closeModal('pendidikan-modal'));
     document.getElementById('btn-cancel-pendidikan').addEventListener('click', () => closeModal('pendidikan-modal'));
+
+    // Kuis Modal Events
+    document.getElementById('btn-close-kuis-modal').addEventListener('click', () => closeModal('kuis-modal'));
+    document.getElementById('btn-close-kuis-builder-modal').addEventListener('click', () => closeModal('kuis-builder-modal'));
 
     // Poin Modal Events
     document.getElementById('poin-form').addEventListener('submit', handleSavePoin);
