@@ -13,6 +13,31 @@
 </head>
 <body>
 
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-topo"></div>
+        <div class="splash-content">
+            <div class="splash-logo-ring">
+                <div class="splash-ring-outer"></div>
+                <div class="splash-ring-inner"></div>
+                <div class="splash-logo">
+                    <svg viewBox="0 0 100 100" fill="currentColor">
+                        <ellipse cx="50" cy="83" rx="9" ry="6"/>
+                        <path d="M50 83C50 58 50 33 50 10C57 33 57 58 50 83Z"/>
+                        <path d="M50 83C50 58 50 33 50 10C43 33 43 58 50 83Z" opacity="0.85"/>
+                        <path d="M50 83C38 64 26 46 17 24C30 33 43 54 50 83Z" opacity="0.9"/>
+                        <path d="M50 83C62 64 74 46 83 24C70 33 57 54 50 83Z" opacity="0.9"/>
+                    </svg>
+                </div>
+            </div>
+            <h1 class="splash-title">ScoutOS</h1>
+            <p class="splash-subtitle">Sistem Manajemen Organisasi Pramuka</p>
+            <div class="splash-progress-wrap">
+                <div class="splash-progress-bar" id="splash-progress-bar"></div>
+            </div>
+            <span class="splash-status" id="splash-status">Mempersiapkan sistem...</span>
+        </div>
+    </div>
+    
     <!-- VIEW: LOGIN -->
     <div id="login-view" class="view hidden">
         <div class="login-layout">
