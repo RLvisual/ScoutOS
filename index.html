@@ -804,11 +804,7 @@
 window.onerror = function(msg, url, line) {
   alert('ERROR: ' + msg + ' (baris ' + line + ')');
 };
-</script>
-<script src="api.js"></script>
-<script src="script.js"></script>
-<script>
-    // Pengaman otomatis: memastikan splash screen pasti tertutup setelah 5 detik
+        // Pengaman otomatis: memastikan splash screen pasti tertutup setelah 5 detik
     setTimeout(function() {
         const splash = document.getElementById('splash-screen');
         if (splash) {
@@ -817,6 +813,8 @@ window.onerror = function(msg, url, line) {
         }
     }, 5000);
 </script>
+<script src="api.js"></script>
+<script src="script.js"></script>
   
 </body>
 </html>
