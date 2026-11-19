@@ -151,9 +151,37 @@ let pendidikanList = [];
 let poinList = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+    startSplashScreen();
     checkSession();
     setupEventListeners();
 });
+
+function startSplashScreen() {
+    const splash = document.getElementById('splash-screen');
+    const statusText = document.getElementById('splash-status');
+    if (!splash) return;
+
+    // Perubahan teks status bertahap selama 5 detik
+    const steps = [
+        { time: 1200, text: 'Menyiapkan data kepramukaan...' },
+        { time: 2600, text: 'Memuat sistem manajemen...' },
+        { time: 4000, text: 'Hampir siap...' }
+    ];
+
+    steps.forEach(step => {
+        setTimeout(() => {
+            if (statusText) statusText.textContent = step.text;
+        }, step.time);
+    });
+
+    // Hilangkan loading screen setelah 5 detik (5000 ms)
+    setTimeout(() => {
+        splash.classList.add('fade-out');
+        setTimeout(() => {
+            splash.remove();
+        }, 650);
+    }, 5000);
+}
 
 /* =========================================
    DATA LAYER — LOCAL STORAGE
