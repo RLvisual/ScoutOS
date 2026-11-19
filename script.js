@@ -150,7 +150,7 @@ let prestasiList = [];
 let pendidikanList = [];
 let poinList = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     startSplashScreen();
     checkSession();
     setupEventListeners();
@@ -161,7 +161,6 @@ function startSplashScreen() {
     const statusText = document.getElementById('splash-status');
     if (!splash) return;
 
-    // Perubahan teks status bertahap selama 5 detik
     const steps = [
         { time: 1200, text: 'Menyiapkan data kepramukaan...' },
         { time: 2600, text: 'Memuat sistem manajemen...' },
@@ -174,7 +173,6 @@ function startSplashScreen() {
         }, step.time);
     });
 
-    // Hilangkan loading screen setelah 5 detik (5000 ms)
     setTimeout(() => {
         splash.classList.add('fade-out');
         setTimeout(() => {
