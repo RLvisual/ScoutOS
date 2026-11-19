@@ -807,6 +807,16 @@ window.onerror = function(msg, url, line) {
 </script>
 <script src="api.js"></script>
 <script src="script.js"></script>
+<script>
+    // Pengaman otomatis: memastikan splash screen pasti tertutup setelah 5 detik
+    setTimeout(function() {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.classList.add('fade-out');
+            setTimeout(() => splash.remove(), 650);
+        }
+    }, 5000);
+</script>
   
 </body>
 </html>
