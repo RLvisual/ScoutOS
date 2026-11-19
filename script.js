@@ -85,16 +85,14 @@ function buildNav(extraItems) {
 const navigationConfig = {
     super_admin: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { id: 'anggota', label: 'Manajemen Anggota', icon: 'users' },
-        { id: 'manajemen_role', label: 'Manajemen Role', icon: 'role' },
-        { id: 'organisasi', label: 'Organisasi', icon: 'org' },
-        { id: 'pengaturan', label: 'Pengaturan Sistem', icon: 'settings' }
+        { id: 'anggota', label: 'Manajemen Anggota', icon: 'users' }
+        // manajemen_role, organisasi, dan pengaturan dihapus
     ]),
     pembina: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
         { id: 'anggota', label: 'Anggota', icon: 'users' },
-        { id: 'absensi', label: 'Absensi', icon: 'calendar' },
-        { id: 'laporan', label: 'Laporan', icon: 'report' }
+        { id: 'absensi', label: 'Absensi', icon: 'calendar' }
+        // laporan dihapus
     ]),
     ketua: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -109,27 +107,24 @@ const navigationConfig = {
     sekretaris: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
         { id: 'anggota', label: 'Anggota', icon: 'users' },
-        { id: 'absensi', label: 'Absensi', icon: 'calendar' },
-        { id: 'dokumen', label: 'Dokumen', icon: 'report' },
-        { id: 'surat', label: 'Surat', icon: 'report' },
-        { id: 'laporan', label: 'Laporan', icon: 'report' }
+        { id: 'absensi', label: 'Absensi', icon: 'calendar' }
+        // dokumen, surat, laporan dihapus
     ]),
     bendahara: buildNav([
-        { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { id: 'laporan_keuangan', label: 'Laporan Keuangan', icon: 'report' }
+        { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' }
+        // laporan_keuangan dihapus karena sudah ada menu Keuangan
     ]),
     koordinator: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { id: 'absensi', label: 'Absensi', icon: 'calendar' },
-        { id: 'dokumentasi', label: 'Dokumentasi', icon: 'report' }
+        { id: 'absensi', label: 'Absensi', icon: 'calendar' }
+        // dokumentasi dihapus
     ]),
     anggota: buildNav([
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { id: 'profil', label: 'Profil Saya', icon: 'profile' },
-        { id: 'jadwal', label: 'Jadwal', icon: 'calendar' }
+        { id: 'profil', label: 'Profil Saya', icon: 'profile' }
+        // jadwal dihapus
     ])
 };
-
 /* =========================================
    STATE MANAGEMENT
 ========================================= */
@@ -156,7 +151,6 @@ let pendidikanList = [];
 let poinList = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await initDatabase();
     checkSession();
     setupEventListeners();
 });
@@ -421,7 +415,7 @@ function checkSession() {
     }
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const userIn = document.getElementById('username').value.trim();
     const passIn = document.getElementById('password').value.trim();
@@ -431,7 +425,12 @@ function handleLogin(e) {
     btn.textContent = 'Memeriksa...';
     btn.disabled = true;
 
-    setTimeout(() => {
+    try {
+        // Ambil data Anggota saja jika belum ada
+        if (membersList.length === 0) {
+            membersList = await apiGet('Anggota');
+        }
+
         const user = membersList.find(u => u.username === userIn && u.password === passIn);
         
         if (user) {
@@ -453,9 +452,13 @@ function handleLogin(e) {
             btn.textContent = 'Masuk ke Sistem';
             btn.disabled = false;
         }
-    }, 500);
+    } catch (err) {
+        errorDiv.textContent = 'Gagal terhubung ke database: ' + err.message;
+        errorDiv.classList.remove('hidden');
+        btn.textContent = 'Masuk ke Sistem';
+        btn.disabled = false;
+    }
 }
-
 function handleLogout() {
     localStorage.removeItem('scoutos_session');
     currentUser = null;
