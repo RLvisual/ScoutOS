@@ -159,102 +159,34 @@ document.addEventListener('DOMContentLoaded', async () => {
    DATA LAYER — LOCAL STORAGE
 ========================================= */
 async function initDatabase() {
-    try {
-        membersList = await apiGet('Anggota');
-    } catch (err) {
-        alert('Gagal mengambil data anggota dari server: ' + err.message);
-        membersList = [];
-    }
+    const tables = [
+        'Anggota', 'Kegiatan', 'Absensi', 'SKU', 'SKK', 
+        'Proker', 'Tugas', 'Keuangan', 'Inventaris', 
+        'Peminjaman', 'Prestasi', 'Pendidikan', 'Poin'
+    ];
 
-    try {
-        activitiesList = await apiGet('Kegiatan');
-    } catch (err) {
-        alert('Gagal mengambil data kegiatan dari server: ' + err.message);
-        activitiesList = [];
-    }
-  
-    try {
-        const rawAbsensi = await apiGet('Absensi');
-        absensiList = rawAbsensi.map(item => ({
-            ...item,
-            records: item.records ? JSON.parse(item.records) : []
-        }));
-    } catch (err) {
-        alert('Gagal mengambil data absensi dari server: ' + err.message);
-        absensiList = [];
-    }
-  
-    try {
-        skuList = await apiGet('SKU');
-    } catch (err) {
-        alert('Gagal mengambil data SKU dari server: ' + err.message);
-        skuList = [];
-    }
-  
-    try {
-    skkList = await apiGet('SKK');
-} catch (err) {
-    alert('Gagal mengambil data SKK dari server: ' + err.message);
-    skkList = [];
-}
-  
-    try {
-    prokerList = await apiGet('Proker');
-} catch (err) {
-    alert('Gagal mengambil data Proker dari server: ' + err.message);
-    prokerList = [];
-    }
-  
-    try {
-    tugasList = await apiGet('Tugas');
-} catch (err) {
-    alert('Gagal mengambil data Tugas dari server: ' + err.message);
-    tugasList = [];
-    }
-  
+    // Ambil semua tabel secara bersamaan (tidak antre satu-satu)
+    const results = await Promise.allSettled(tables.map(t => apiGet(t)));
+
+    const getData = (index) => results[index].status === 'fulfilled' ? results[index].value : [];
+
+    membersList = getData(0);
+    activitiesList = getData(1);
+    absensiList = getData(2).map(item => ({
+        ...item,
+        records: item.records ? JSON.parse(item.records) : []
+    }));
+    skuList = getData(3);
+    skkList = getData(4);
+    prokerList = getData(5);
+    tugasList = getData(6);
     pengumumanList = loadFromStorage('scoutos_pengumuman', []);
-  
-    try {
-    keuanganList = await apiGet('Keuangan');
-} catch (err) {
-    alert('Gagal mengambil data Keuangan dari server: ' + err.message);
-    keuanganList = [];
-    }
-  
-    try {
-    inventarisList = await apiGet('Inventaris');
-} catch (err) {
-    alert('Gagal mengambil data Inventaris dari server: ' + err.message);
-    inventarisList = [];
-    }
-  
-    try {
-    peminjamanList = await apiGet('Peminjaman');
-} catch (err) {
-    alert('Gagal mengambil data Peminjaman dari server: ' + err.message);
-    peminjamanList = [];
-    }
-  
-    try {
-    prestasiList = await apiGet('Prestasi');
-} catch (err) {
-    alert('Gagal mengambil data Prestasi dari server: ' + err.message);
-    prestasiList = [];
-    }
-  
-    try {
-    pendidikanList = await apiGet('Pendidikan');
-} catch (err) {
-    alert('Gagal mengambil data pendidikan dari server: ' + err.message);
-    pendidikanList = [];
-    }
-  
-    try {
-    poinList = await apiGet('Poin');
-} catch (err) {
-    alert('Gagal mengambil data poin dari server: ' + err.message);
-    poinList = [];
-}
+    keuanganList = getData(7);
+    inventarisList = getData(8);
+    peminjamanList = getData(9);
+    prestasiList = getData(10);
+    pendidikanList = getData(11);
+    poinList = getData(12);
 }
 
 function loadFromStorage(key, fallback) {
@@ -479,13 +411,17 @@ function showLogin() {
     btn.disabled = false;
 }
 
-function showApp() {
+async function showApp() {
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('app-view').classList.remove('hidden');
     
     renderHeader();
     renderSidebar();
     navigateTo('dashboard');
+
+    // Ambil data lainnya di latar belakang setelah dashboard tampil
+    await initDatabase();
+    renderAll(); // Perbarui angka SKU, SKK, dan jumlah anggota di dashboard
 }
 
 function renderHeader() {
